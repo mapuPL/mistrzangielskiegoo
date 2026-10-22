@@ -1,0 +1,6 @@
+{
+  "name": "English Quest — The Lost Words",
+  "description": "Interaktywna gra przygodowa 3D do nauki języka angielskiego dla dzieci w wieku 8–11 lat (klasy III i IV). Eksploruj Wordland, odnajduj zagubione słowa, rozmawiaj z mieszkańcami i wykonuj dynamiczne misje edukacyjne.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
