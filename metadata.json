@@ -1,6 +1,6 @@
 {
-  "name": "English Quest — The Lost Words",
-  "description": "Interaktywna gra przygodowa 3D do nauki języka angielskiego dla dzieci w wieku 8–11 lat (klasy III i IV). Eksploruj Wordland, odnajduj zagubione słowa, rozmawiaj z mieszkańcami i wykonuj dynamiczne misje edukacyjne.",
+  "name": "The Shifting Islands: Word Quest",
+  "description": "Edukacyjna gra przygodowa 3D w stylu low-poly do nauki języka angielskiego dla klas 3–4. Dynamicznie losowane wyspy (ZOO, Kitchen, School, House, Colors/Numbers), mini-gry, sklep avatara i proceduralny świat 3D.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

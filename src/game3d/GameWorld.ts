@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { AvatarConfig, NPCData } from '../types/game';
 import { NPCS_DATA } from '../data/curriculum';
+import { SoundEffects } from '../services/audio';
 import {
   createGrassTexture,
   createCobblestoneTexture,
@@ -38,6 +39,11 @@ export class GameWorld {
   public isGrounded: boolean = true;
   public isRunning: boolean = false;
   private walkCycle: number = 0;
+
+  // Jump animation & squash/stretch states
+  private wasGroundedLastFrame: boolean = true;
+  private playerSquash: THREE.Vector3 = new THREE.Vector3(1, 1, 1);
+  private jumpAirTime: number = 0;
 
   // Input states
   public keys: { [key: string]: boolean } = {};
@@ -609,17 +615,21 @@ export class GameWorld {
     const baseSpeed = isSprinting ? 9.0 : 5.5;
 
     // Movement direction relative to camera angle
-    let inputDir = new THREE.Vector2(moveRight, moveForward);
-    const hasMoveInput = inputDir.lengthSq() > 0.01;
+    const hasMoveInput = (moveForward !== 0 || moveRight !== 0);
 
     if (hasMoveInput) {
-      if (inputDir.length() > 1) inputDir.normalize();
+      // Normalize input vector so diagonal movement isn't faster
+      const len = Math.hypot(moveRight, moveForward);
+      const normRight = moveRight / (len > 1 ? len : 1);
+      const normForward = moveForward / (len > 1 ? len : 1);
 
-      // Transform by camera yaw
-      const cosYaw = Math.cos(this.cameraYaw);
+      // Camera orientation relative to player:
+      // Forward direction (away from camera): (sinYaw, cosYaw)
+      // Screen-right direction: (-cosYaw, sinYaw)
       const sinYaw = Math.sin(this.cameraYaw);
-      const worldDx = inputDir.x * cosYaw - inputDir.y * sinYaw;
-      const worldDz = inputDir.x * sinYaw + inputDir.y * cosYaw;
+      const cosYaw = Math.cos(this.cameraYaw);
+      const worldDx = normForward * sinYaw - normRight * cosYaw;
+      const worldDz = normForward * cosYaw + normRight * sinYaw;
 
       const targetAngle = Math.atan2(worldDx, worldDz);
       this.playerRotation = THREE.MathUtils.damp(this.playerRotation, targetAngle, 12, delta);
@@ -644,23 +654,56 @@ export class GameWorld {
     if (jumpRequested && this.isGrounded) {
       this.playerVelocity.y = 8.5;
       this.isGrounded = false;
+      this.jumpAirTime = 0;
+      // Launch anticipation stretch
+      this.playerSquash.set(0.86, 1.25, 0.86);
+      SoundEffects.playJumpSound();
     }
 
     // Apply gravity
     this.playerVelocity.y -= 22 * delta;
     this.playerPos.y += this.playerVelocity.y * delta;
 
+    if (!this.isGrounded) {
+      this.jumpAirTime += delta;
+    }
+
+    // Ground collision & landing impact
     if (this.playerPos.y <= 0) {
+      if (!this.wasGroundedLastFrame) {
+        // Landing impact squash
+        this.playerSquash.set(1.22, 0.78, 1.22);
+      }
       this.playerPos.y = 0;
       this.playerVelocity.y = 0;
       this.isGrounded = true;
+      this.jumpAirTime = 0;
     }
 
-    // Update player mesh transform
+    // Smoothly restore scale from squash/stretch back to 1.0
+    this.playerSquash.x = THREE.MathUtils.damp(this.playerSquash.x, 1.0, 14, delta);
+    this.playerSquash.y = THREE.MathUtils.damp(this.playerSquash.y, 1.0, 14, delta);
+    this.playerSquash.z = THREE.MathUtils.damp(this.playerSquash.z, 1.0, 14, delta);
+
+    // Update player mesh transform & squash
     this.playerMesh.position.copy(this.playerPos);
     this.playerMesh.rotation.y = this.playerRotation;
+    this.playerMesh.scale.copy(this.playerSquash);
 
-    // Animate limbs during walk/run
+    // Dynamic contact shadow grounding: stay on the ground plane and fade/shrink with altitude
+    const shadow = this.playerMesh.getObjectByName('player_shadow') as THREE.Mesh;
+    if (shadow) {
+      shadow.position.y = -this.playerPos.y + 0.02;
+      const height = Math.max(0, this.playerPos.y);
+      const shadowScale = Math.max(0.35, 1.0 - height * 0.25);
+      shadow.scale.set(shadowScale, shadowScale, shadowScale);
+      const shadowMat = shadow.material as THREE.MeshBasicMaterial;
+      if (shadowMat) {
+        shadowMat.opacity = 0.35 * Math.max(0.12, 1.0 - height * 0.3);
+      }
+    }
+
+    // Animate limbs synchronized with movement and jump state
     const leftArm = this.playerMesh.getObjectByName('arm_left');
     const rightArm = this.playerMesh.getObjectByName('arm_right');
     const leftLeg = this.playerMesh.getObjectByName('leg_left');
@@ -668,13 +711,85 @@ export class GameWorld {
     const torso = this.playerMesh.getObjectByName('player_torso');
 
     if (leftArm && rightArm && leftLeg && rightLeg && torso) {
-      const swing = hasMoveInput ? Math.sin(this.walkCycle) * 0.6 : 0;
-      leftArm.rotation.x = -swing;
-      rightArm.rotation.x = swing;
-      leftLeg.rotation.x = swing;
-      rightLeg.rotation.x = -swing;
-      torso.position.y = 1.05 + Math.abs(Math.sin(this.walkCycle * 2)) * 0.08;
+      if (this.isGrounded) {
+        // GROUNDED STATE: walking, sprinting, or standing idle
+        const swing = hasMoveInput ? Math.sin(this.walkCycle) * (isSprinting ? 0.85 : 0.6) : 0;
+
+        leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, -swing, 18, delta);
+        rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, swing, 18, delta);
+        leftArm.rotation.z = THREE.MathUtils.damp(leftArm.rotation.z, 0, 16, delta);
+        rightArm.rotation.z = THREE.MathUtils.damp(rightArm.rotation.z, 0, 16, delta);
+
+        leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, swing, 18, delta);
+        rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, -swing, 18, delta);
+        leftLeg.rotation.z = THREE.MathUtils.damp(leftLeg.rotation.z, 0, 16, delta);
+        rightLeg.rotation.z = THREE.MathUtils.damp(rightLeg.rotation.z, 0, 16, delta);
+
+        const targetTorsoY = 1.05 + (hasMoveInput ? Math.abs(Math.sin(this.walkCycle * 2)) * 0.08 : 0);
+        const targetTorsoRotX = hasMoveInput && isSprinting ? 0.15 : 0;
+        torso.position.y = THREE.MathUtils.damp(torso.position.y, targetTorsoY, 16, delta);
+        torso.rotation.x = THREE.MathUtils.damp(torso.rotation.x, targetTorsoRotX, 14, delta);
+      } else {
+        // AIRBORNE JUMP STATE: Synchronized with ascent vs fall and moving vs in-place
+        const isAscending = this.playerVelocity.y > 0;
+
+        if (hasMoveInput) {
+          // Running jump: dynamic forward leap pose
+          const leadLegAngle = isAscending ? -0.7 : -0.2;
+          const trailLegAngle = isAscending ? 0.65 : 0.25;
+
+          leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, leadLegAngle, 14, delta);
+          rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, trailLegAngle, 14, delta);
+          leftLeg.rotation.z = THREE.MathUtils.damp(leftLeg.rotation.z, -0.08, 12, delta);
+          rightLeg.rotation.z = THREE.MathUtils.damp(rightLeg.rotation.z, 0.08, 12, delta);
+
+          // Opposite arms for dynamic balance in mid-air
+          const leadArmAngle = isAscending ? -1.35 : -0.6;
+          const trailArmAngle = isAscending ? 0.75 : 0.3;
+          leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, leadArmAngle, 14, delta);
+          rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, trailArmAngle, 14, delta);
+          leftArm.rotation.z = THREE.MathUtils.damp(leftArm.rotation.z, -0.3, 12, delta);
+          rightArm.rotation.z = THREE.MathUtils.damp(rightArm.rotation.z, 0.3, 12, delta);
+
+          // Forward tilt during running leap
+          torso.rotation.x = THREE.MathUtils.damp(torso.rotation.x, 0.22, 12, delta);
+          torso.position.y = THREE.MathUtils.damp(torso.position.y, 1.08, 12, delta);
+        } else {
+          // Vertical in-place jump: tucked knees on ascent, outstretched arms, landing ready on descent
+          if (isAscending) {
+            // Ascending: arms up high, knees tucked up
+            leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, -1.5, 14, delta);
+            rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, -1.5, 14, delta);
+            leftArm.rotation.z = THREE.MathUtils.damp(leftArm.rotation.z, -0.45, 14, delta);
+            rightArm.rotation.z = THREE.MathUtils.damp(rightArm.rotation.z, 0.45, 14, delta);
+
+            leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, -0.5, 14, delta);
+            rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, -0.5, 14, delta);
+            leftLeg.rotation.z = THREE.MathUtils.damp(leftLeg.rotation.z, -0.18, 14, delta);
+            rightLeg.rotation.z = THREE.MathUtils.damp(rightLeg.rotation.z, 0.18, 14, delta);
+
+            torso.rotation.x = THREE.MathUtils.damp(torso.rotation.x, -0.05, 12, delta);
+            torso.position.y = THREE.MathUtils.damp(torso.position.y, 1.1, 12, delta);
+          } else {
+            // Falling: arms spread for parachute/landing balance, legs reach down
+            leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, -0.35, 12, delta);
+            rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, -0.35, 12, delta);
+            leftArm.rotation.z = THREE.MathUtils.damp(leftArm.rotation.z, -0.7, 12, delta);
+            rightArm.rotation.z = THREE.MathUtils.damp(rightArm.rotation.z, 0.7, 12, delta);
+
+            leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, 0.15, 14, delta);
+            rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, 0.15, 14, delta);
+            leftLeg.rotation.z = THREE.MathUtils.damp(leftLeg.rotation.z, -0.08, 12, delta);
+            rightLeg.rotation.z = THREE.MathUtils.damp(rightLeg.rotation.z, 0.08, 12, delta);
+
+            torso.rotation.x = THREE.MathUtils.damp(torso.rotation.x, 0.05, 12, delta);
+            torso.position.y = THREE.MathUtils.damp(torso.position.y, 1.05, 12, delta);
+          }
+        }
+      }
     }
+
+    this.wasGroundedLastFrame = this.isGrounded;
 
     // Update camera to follow behind player
     const targetCamX = this.playerPos.x - Math.sin(this.cameraYaw) * Math.cos(this.cameraPitch) * this.cameraDistance;

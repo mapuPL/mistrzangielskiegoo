@@ -1,21 +1,2284 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>English Quest — The Lost Words</title>
-    <meta name="description" content="Interaktywna gra przygodowa 3D do nauki języka angielskiego dla dzieci w wieku 8–11 lat (klasy III i IV). Eksploruj Wordland, odnajduj zagubione słowa, rozmawiaj z mieszkańcami i wykonuj dynamiczne misje edukacyjne." />
-    <meta property="og:title" content="English Quest — The Lost Words" />
-    <meta property="og:description" content="Interaktywna gra przygodowa 3D do nauki języka angielskiego dla dzieci w wieku 8–11 lat (klasy III i IV). Eksploruj Wordland, odnajduj zagubione słowa, rozmawiaj z mieszkańcami i wykonuj dynamiczne misje edukacyjne." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>The Shifting Islands: Word Quest</title>
+  <meta name="description" content="Edukacyjna gra przygodowa 3D w stylu low-poly do nauki języka angielskiego dla klas 3–4. Dynamicznie losowane wyspy, bogata fabuła, mini-gry i interaktywna mapa." />
+  <meta property="og:title" content="The Shifting Islands: Word Quest" />
+  <meta property="og:description" content="Wyrusz na Ruchome Wyspy Wordland, pomagaj mieszkańcom, zbieraj litery i rozwiązuj zagadki po angielsku!" />
+  <meta property="og:type" content="website" />
 
+  <!-- Google Fonts, Three.js r128 & Confetti from CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --accent: #f59e0b;
+      --accent-dark: #d97706;
+      --sky: #38bdf8;
+      --dark: #0f172a;
+      --panel-bg: rgba(15, 23, 42, 0.92);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #38bdf8;
+    }
+
+    #game-canvas-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+    #game-canvas-container:active {
+      cursor: grabbing;
+    }
+
+    /* Top HUD */
+    .hud-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 18px;
+    }
+    .interactive {
+      pointer-events: auto;
+    }
+
+    .btn {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-weight: 700;
+      border-radius: 16px;
+      padding: 10px 18px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn-menu {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+      border: 2px solid #fde68a;
+      padding: 10px 18px;
+      font-size: 15px;
+      border-radius: 20px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+    }
+    .btn-blue {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+    }
+    .btn-purple {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: #fff;
+    }
+
+    /* Top HUD Panels */
+    .hud-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .quest-card {
+      background: var(--panel-bg);
+      border: 3px solid #facc15;
+      border-radius: 20px;
+      padding: 12px 18px;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      max-width: 460px;
+    }
+    .quest-header {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fde047;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .quest-main {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+    }
+    .quest-sub {
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 2px;
+      font-style: italic;
+    }
+    .quest-tracker {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .tracker-pill {
+      background: rgba(255,255,255,0.12);
+      padding: 3px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .tracker-pill.done {
+      background: #065f46;
+      border-color: #34d399;
+      color: #6ee7b7;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: var(--panel-bg);
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 8px 16px;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    /* Proximity Interact Banner */
+    #interact-prompt {
+      position: absolute;
+      bottom: 86px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #facc15, #f59e0b);
+      color: #0f172a;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 12px 24px;
+      border-radius: 22px;
+      border: 4px solid #fff;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      cursor: pointer;
+      display: none;
+      animation: bouncePrompt 1.2s infinite ease-in-out alternate;
+    }
+    @keyframes bouncePrompt {
+      from { transform: translate(-50%, 0); }
+      to { transform: translate(-50%, -6px); }
+    }
+
+    /* Bottom Dock Bar */
+    .dock-container {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: var(--panel-bg);
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 6px 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .dock-btn {
+      background: rgba(255,255,255,0.08);
+      color: #f1f5f9;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      transition: all 0.15s;
+    }
+    .dock-btn:hover {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .dock-btn .emoji {
+      font-size: 18px;
+    }
+
+    /* Mobile On-Screen Controls */
+    .mobile-stick-zone {
+      position: absolute;
+      bottom: 24px;
+      left: 20px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.65);
+      border: 3px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      z-index: 15;
+    }
+    .stick-knob {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    .mobile-buttons {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 15;
+    }
+    .round-action-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      cursor: pointer;
+    }
+
+    /* Modals & Screens */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.8);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-box {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 24px;
+      max-width: 600px;
+      width: 100%;
+      border: 4px solid #facc15;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+      color: #1e293b;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      color: #64748b;
+    }
+
+    /* Dialogue & Riddle Window */
+    .dialogue-bubble {
+      background: #eff6ff;
+      border: 2px solid #93c5fd;
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .dialogue-en {
+      font-size: 19px;
+      font-weight: 800;
+      color: #1e3a8a;
+      line-height: 1.3;
+    }
+    .dialogue-pl {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    .dialogue-answers {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dialogue-opt {
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dialogue-opt:hover {
+      border-color: #3b82f6;
+      background: #f0fdf4;
+      transform: translateY(-2px);
+    }
+
+    /* WORLD MAP SCREEN */
+    #world-map-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, #38bdf8 0%, #0284c7 100%);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      color: #fff;
+      overflow-y: auto;
+    }
+    .map-header {
+      text-align: center;
+      max-width: 680px;
+    }
+    .map-header h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fef08a;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .map-header p {
+      font-size: 15px;
+      color: #e0f2fe;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* Clickable Islands Board */
+    .islands-interactive-board {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 18px;
+      max-width: 960px;
+      margin: 16px 0;
+      width: 100%;
+    }
+    .island-card-btn {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 18px;
+      width: 280px;
+      color: #0f172a;
+      text-align: center;
+      border: 4px solid #facc15;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .island-card-btn:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+      border-color: #10b981;
+    }
+    .island-badge {
+      position: absolute;
+      top: -12px;
+      right: 12px;
+      background: #0284c7;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 2px solid #fff;
+    }
+
+    /* Badge Toast */
+    #badge-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #047857);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 20px;
+      border: 3px solid #facc15;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 200;
+      animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes toastIn {
+      from { transform: translateX(120%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Sound speaker button */
+    .speak-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    /* Story Storybook Modal */
+    .story-card {
+      background: #fffbeb;
+      border: 2px solid #fde68a;
+      border-radius: 20px;
+      padding: 16px;
+      margin-top: 12px;
+      line-height: 1.5;
+      font-size: 14px;
+      color: #78350f;
+    }
+
+    /* Shop Grid */
+    .shop-items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .shop-item {
+      border: 2px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .shop-item.owned {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+    .shop-item.equipped {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      box-shadow: 0 0 0 2px #3b82f6;
+    }
+
+    @media (max-width: 640px) {
+      .quest-card { max-width: 220px; padding: 10px; }
+      .quest-main { font-size: 13px; }
+      .map-header h1 { font-size: 26px; }
+      .island-card-btn { width: 100%; max-width: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas Mount Point -->
+  <div id="game-canvas-container"></div>
+
+  <!-- IN-GAME HUD -->
+  <div class="hud-layer" id="hud-layer" style="display: none;">
+    <!-- Top Bar with Quest & Return to Map Button -->
+    <div class="hud-top-bar">
+      <!-- Active Quest & Location -->
+      <div class="quest-card interactive">
+        <div class="quest-header">
+          <span id="hud-zone-tag">🏝️ Central Hub</span>
+          <span style="font-size: 10px; color: #facc15;" id="hud-quest-phase">Misja 1/3</span>
+        </div>
+        <div class="quest-main" id="hud-quest-text">
+          Explore the Shifting Islands!
+        </div>
+        <div class="quest-sub" id="hud-quest-sub">
+          (Eksploruj ruchome wyspy i rozwiązuj zadania!)
+        </div>
+        <div class="quest-tracker">
+          <span class="tracker-pill" id="pill-letters">🔤 Litery: 0/4</span>
+          <span class="tracker-pill" id="pill-gate">🚪 Brama: Czeka</span>
+          <span class="tracker-pill" id="pill-npc">🦉 Zagadka: Czeka</span>
+        </div>
+      </div>
+
+      <!-- Stats & Quick Return to Map Button -->
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+        <div class="stats-bar interactive">
+          <div class="stat-pill" title="Score">
+            <span>🏆</span> <span id="hud-score">0</span>
+          </div>
+          <div class="stat-pill" title="Coins">
+            <span>🪙</span> <span id="hud-coins">20</span>
+          </div>
+        </div>
+
+        <!-- ALWAYS VISIBLE EXIT BUTTON -->
+        <button class="btn btn-menu interactive" onclick="window.showScreen('map')" title="Wróć do wyboru wysp">
+          <span>🗺️</span> <span>Mapa Świata (ESC)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="interact-prompt" class="interactive" onclick="window.triggerProximityInteract()">
+      [E] lub Dotknij: Porozmawiaj / Zbierz!
+    </div>
+
+    <!-- Bottom Navigation Dock -->
+    <div class="dock-container interactive">
+      <button class="dock-btn" onclick="window.showScreen('map')">
+        <span class="emoji">🗺️</span>
+        <span>Wyspy</span>
+      </button>
+      <button class="dock-btn" onclick="window.openModal('shop')">
+        <span class="emoji">🛍️</span>
+        <span>Sklep</span>
+      </button>
+      <button class="dock-btn" onclick="window.openModal('vocab')">
+        <span class="emoji">📖</span>
+        <span>Słowniczek</span>
+      </button>
+      <button class="dock-btn" onclick="window.openModal('story')">
+        <span class="emoji">📜</span>
+        <span>Fabuła</span>
+      </button>
+      <button class="dock-btn" onclick="window.toggleAudio()">
+        <span class="emoji" id="sound-btn-icon">🔊</span>
+        <span>Dźwięk</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Touch Joystick & Action Buttons for Mobile -->
+  <div id="mobile-controls" style="display: none;">
+    <div class="mobile-stick-zone" id="mobile-stick">
+      <div class="stick-knob" id="stick-knob"></div>
+    </div>
+    <div class="mobile-buttons">
+      <button class="round-action-btn btn-warning" id="mobile-action-btn" onclick="window.triggerProximityInteract()">
+        <span>E</span>
+      </button>
+      <button class="round-action-btn btn-primary" id="mobile-jump-btn" onclick="window.triggerJump()">
+        <span>⬆</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- WORLD MAP BOARD / SELECTION SCREEN (FIRST BOARD) -->
+  <div id="world-map-screen">
+    <div class="map-header">
+      <div style="font-size: 38px;">🏝️</div>
+      <h1>THE SHIFTING ISLANDS: WORD QUEST</h1>
+      <p>Wybierz wyspę, na którą chcesz polecieć, aby odnaleźć zagubione słowa Burzy Wordland!</p>
+    </div>
+
+    <!-- Interactive Island Selector Cards -->
+    <div class="islands-interactive-board" id="islands-board-container">
+      <!-- Injected by JavaScript with direct teleportation buttons -->
+    </div>
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px;">
+      <button class="btn btn-primary" style="font-size: 16px; padding: 12px 28px;" onclick="window.teleportToIsland(0)">
+        🚀 Wejdź do Gry (Hub Główny)
+      </button>
+      <button class="btn btn-purple" style="font-size: 15px;" onclick="window.openModal('shop')">
+        🛍️ Sklep Avatara
+      </button>
+      <button class="btn btn-blue" style="font-size: 15px;" onclick="window.openModal('story')">
+        📜 Fabuła Gry
+      </button>
+      <button class="btn btn-menu" style="font-size: 15px;" onclick="window.generateNewRandomGame()">
+        🎲 Nowe Losowanie Wysp
+      </button>
+    </div>
+  </div>
+
+  <!-- NPC DIALOGUE & RIDDLE MODAL -->
+  <div class="modal-overlay" id="dialogue-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeModal('dialogue')">✕</button>
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+        <div id="dialogue-npc-avatar" style="width: 54px; height: 54px; border-radius: 18px; background: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          🦁
+        </div>
+        <div>
+          <h2 id="dialogue-npc-name" style="font-size: 22px; font-weight: 800; color: #0f172a;">Ranger Alex</h2>
+          <p id="dialogue-npc-role" style="font-size: 13px; color: #64748b; font-weight: 700;">Guardian of Animal Safari</p>
+        </div>
+      </div>
+
+      <div class="dialogue-bubble">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+          <div class="dialogue-en" id="dialogue-question-en">
+            What animal has a long neck?
+          </div>
+          <button class="speak-btn" onclick="window.speakCurrentQuestion()" title="Posłuchaj wymowy">🔊</button>
+        </div>
+        <div class="dialogue-pl" id="dialogue-question-pl">
+          (Jakie zwierzę ma długą szyję?)
+        </div>
+      </div>
+
+      <div class="dialogue-answers" id="dialogue-options-container">
+        <!-- Answers generated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- AVATAR SHOP MODAL -->
+  <div class="modal-overlay" id="shop-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeModal('shop')">✕</button>
+      <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">🛍️ Sklep Avatara</h2>
+      <p style="font-size: 13px; color: #64748b;">Dostosuj wygląd postaci, kupując nakrycia głowy i skrzydła!</p>
+
+      <div style="background: #f8fafc; border-radius: 16px; padding: 12px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-weight: 700;">Twoje monety:</span>
+        <span style="font-size: 18px; font-weight: 800; color: #d97706;">🪙 <span id="shop-coins-counter">20</span></span>
+      </div>
+
+      <div class="shop-items-grid" id="shop-items-container">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- STORY MODAL -->
+  <div class="modal-overlay" id="story-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeModal('story')">✕</button>
+      <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">📜 Fabuła: Tajemnica Burzy Słów</h2>
+      <div class="story-card">
+        <p><strong>Cześć Odkrywco!</strong></p>
+        <p style="margin-top: 6px;">
+          Pewnego dnia nad magiczną krainą <em>Wordland</em> przeszła tajemnicza <strong>Burza Słów (The Word Storm)</strong>. Wicher rozproszył wyspy wiedzy na dryfujące archipelagi i rozrzucił święte litery w świecie 3D!
+        </p>
+        <p style="margin-top: 6px;">
+          Twoje zadanie:
+          <br>1. <strong>Odwiedź 3 wylosowane wyspy</strong> za pomocą mostów lub portali.
+          <br>2. <strong>Zbierz rozrzucone 3D litery</strong> każdego angielskiego słowa (np. L-I-O-N, A-P-P-L-E).
+          <br>3. <strong>Wybierz właściwą Bramę Segregacji</strong> (Sorting Gate).
+          <br>4. <strong>Rozwiąż zagadkę Strażnika</strong>, aby odzyskać Kryształ Słowa!
+        </p>
+      </div>
+      <button class="btn btn-primary" style="width: 100%; margin-top: 14px;" onclick="window.closeModal('story')">
+        Rozumiem! Wracam do misji!
+      </button>
+    </div>
+  </div>
+
+  <!-- VOCABULARY MODAL -->
+  <div class="modal-overlay" id="vocab-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="window.closeModal('vocab')">✕</button>
+      <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">📖 Słowniczek Odkrywcy</h2>
+      <p style="font-size: 13px; color: #64748b;">Kliknij głośnik, aby usłyszeć poprawną angielską wymowę!</p>
+      <div id="vocab-list" style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- WIN CELEBRATION MODAL -->
+  <div class="modal-overlay" id="win-modal">
+    <div class="modal-box" style="text-align: center; border-color: #10b981;">
+      <div style="font-size: 58px; margin-bottom: 6px;">🏆</div>
+      <h2 style="font-size: 30px; font-weight: 800; color: #047857;">FANTASTIC JOB!</h2>
+      <p style="font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 4px;">
+        Odzyskałeś wszystkie zagubione słowa i przywróciłeś harmonię w Wordland!
+      </p>
+
+      <div style="background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 20px; padding: 14px; margin: 18px 0; display: flex; justify-content: space-around;">
+        <div>
+          <div style="font-size: 12px; color: #047857;">Wynik (Score)</div>
+          <div style="font-size: 26px; font-weight: 800; color: #065f46;" id="win-score">0</div>
+        </div>
+        <div>
+          <div style="font-size: 12px; color: #047857;">Monety (Coins)</div>
+          <div style="font-size: 26px; font-weight: 800; color: #d97706;" id="win-coins">0</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="font-size: 17px; width: 100%; padding: 14px;" onclick="window.generateNewRandomGame()">
+        🎲 Nowe Losowanie Wysp (New Shifting Islands)
+      </button>
+    </div>
+  </div>
+
+  <!-- BADGE POPUP TOAST -->
+  <div id="badge-toast">
+    <span style="font-size: 32px;" id="badge-icon">🎖️</span>
+    <div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #fef08a;">Nowe Osiągnięcie!</div>
+      <div style="font-size: 15px; font-weight: 800;" id="badge-name">First Quest Done</div>
+      <div style="font-size: 12px; color: #d1fae5;" id="badge-desc">Ukończono pierwszą misję</div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT GAME ENGINE -->
+  <script>
+    /* ==========================================================================
+       1. WEB AUDIO API SYNTHESIZER
+       ========================================================================== */
+    const SoundFx = {
+      ctx: null,
+      enabled: true,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playTone(freq, type = 'sine', duration = 0.2, gainVal = 0.15) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      },
+      coin() {
+        this.playTone(987, 'sine', 0.08, 0.15);
+        setTimeout(() => this.playTone(1318, 'sine', 0.18, 0.2), 65);
+      },
+      jump() {
+        this.init();
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.16);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.22);
+        } catch(e) {}
+      },
+      chime() {
+        [523, 659, 783, 1046].forEach((n, i) => {
+          setTimeout(() => this.playTone(n, 'triangle', 0.32, 0.18), i * 75);
+        });
+      },
+      oops() {
+        this.playTone(260, 'sawtooth', 0.18, 0.1);
+        setTimeout(() => this.playTone(200, 'sawtooth', 0.25, 0.12), 90);
+      },
+      fanfare() {
+        [440, 554, 659, 880].forEach(f => this.playTone(f, 'sine', 0.7, 0.16));
+      }
+    };
+
+    /* ==========================================================================
+       2. WEB SPEECH API
+       ========================================================================== */
+    const TTS = {
+      speak(text) {
+        if (!('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const cleanText = text.replace(/\(.*?\)/g, '').trim();
+          const u = new SpeechSynthesisUtterance(cleanText);
+          u.lang = 'en-US';
+          u.rate = 0.88;
+          window.speechSynthesis.speak(u);
+        } catch(e) {}
+      }
+    };
+
+    /* ==========================================================================
+       3. 5 THEMED SHIFTING ISLANDS DATABASE
+       ========================================================================== */
+    const ALL_ZONES = [
+      {
+        id: 'zoo',
+        nameEn: 'Animal Safari Island',
+        namePl: 'Wyspa Safari (ZOO)',
+        icon: '🦁',
+        color: 0x84cc16,
+        colorHex: '#84cc16',
+        storyIntro: 'Zwierzęta w zoo pomieszały swoje litery! Odnajdź litery słowa L-I-O-N i pomóż Rangerowi Alexowi.',
+        npcName: 'Ranger Alex',
+        npcRole: 'Safari Guardian',
+        npcEmoji: '🤠',
+        collectorWord: 'LION',
+        collectorItems: ['L', 'I', 'O', 'N'],
+        sortPromptEn: 'Which gate is for ANIMALS?',
+        sortPromptPl: 'Która brama prowadzi do ZWIERZĄT?',
+        sortGateA: { text: 'ANIMALS (Zwierzęta)', isCorrect: true },
+        sortGateB: { text: 'VEHICLES (Pojazdy)', isCorrect: false },
+        riddle: {
+          qEn: 'I have a very long neck and yellow spots. Who am I?',
+          qPl: '(Mam bardzo długą szyję i żółte plamy. Kim jestem?)',
+          options: [
+            { textEn: 'A Giraffe (Żyrafa)', isCorrect: true },
+            { textEn: 'An Elephant (Słoń)', isCorrect: false },
+            { textEn: 'A Frog (Żaba)', isCorrect: false }
+          ]
+        }
+      },
+      {
+        id: 'kitchen',
+        nameEn: 'Tasty Kitchen Island',
+        namePl: 'Pyszna Wyspa Kuchenna',
+        icon: '🍎',
+        color: 0xf59e0b,
+        colorHex: '#f59e0b',
+        storyIntro: 'W kuchni piekarza Pierre zagubiły się świeże owoce! Zbierz litery A-P-P-L-E i rozwiąż kuchenną zagadkę.',
+        npcName: 'Chef Pierre',
+        npcRole: 'Master Baker',
+        npcEmoji: '👨‍🍳',
+        collectorWord: 'APPLE',
+        collectorItems: ['A', 'P', 'P', 'L', 'E'],
+        sortPromptEn: 'Pick the gate with FOOD items!',
+        sortPromptPl: 'Wybierz bramę z JEDZENIEM!',
+        sortGateA: { text: 'FOOD (Jedzenie)', isCorrect: true },
+        sortGateB: { text: 'CLOTHES (Ubrania)', isCorrect: false },
+        riddle: {
+          qEn: 'I am sweet, round and red. Monkeys like bananas, but doctors love me!',
+          qPl: '(Jestem słodkie, okrągłe i czerwone. Co to jest?)',
+          options: [
+            { textEn: 'An Apple (Jabłko)', isCorrect: true },
+            { textEn: 'A Sandwich (Kanapka)', isCorrect: false },
+            { textEn: 'A Sausage (Kiełbasa)', isCorrect: false }
+          ]
+        }
+      },
+      {
+        id: 'school',
+        nameEn: 'Magic School Island',
+        namePl: 'Wyspa Magicznej Szkoły',
+        icon: '📚',
+        color: 0x3b82f6,
+        colorHex: '#3b82f6',
+        storyIntro: 'Księgi w bibliotece rozleciały się na wietrze! Odszukaj litery B-O-O-K i porozmawiaj z Profesorem.',
+        npcName: 'Professor Owl',
+        npcRole: 'Librarian Owl',
+        npcEmoji: '🦉',
+        collectorWord: 'BOOK',
+        collectorItems: ['B', 'O', 'O', 'K'],
+        sortPromptEn: 'Find the gate with SCHOOL SUPPLIES!',
+        sortPromptPl: 'Wybierz bramę z PRZYBORAMI SZKOLNYMI!',
+        sortGateA: { text: 'SCHOOL SUPPLIES (Szkoła)', isCorrect: true },
+        sortGateB: { text: 'FURNITURE (Meble)', isCorrect: false },
+        riddle: {
+          qEn: 'I am long and yellow. You use me to write and draw in your notebook.',
+          qPl: '(Jestem długi i żółty. Piszesz i rysujesz mną w zeszycie.)',
+          options: [
+            { textEn: 'A Pencil (Ołówek)', isCorrect: true },
+            { textEn: 'A Schoolbag (Plecak)', isCorrect: false },
+            { textEn: 'A Chair (Krzesło)', isCorrect: false }
+          ]
+        }
+      },
+      {
+        id: 'house',
+        nameEn: 'Cozy House Island',
+        namePl: 'Wyspa Przytulnego Domu',
+        icon: '🏠',
+        color: 0xec4899,
+        colorHex: '#ec4899',
+        storyIntro: 'W domu zniknął klucz do drzwi! Zbuduj słowo D-O-O-R, wybierz właściwy pokój i pomóż Belli.',
+        npcName: 'Bella',
+        npcRole: 'House Keeper',
+        npcEmoji: '👧',
+        collectorWord: 'DOOR',
+        collectorItems: ['D', 'O', 'O', 'R'],
+        sortPromptEn: 'Which gate is for ROOMS in a house?',
+        sortPromptPl: 'Która brama to POMIESZCZENIA w domu?',
+        sortGateA: { text: 'ROOMS (Pokoje)', isCorrect: true },
+        sortGateB: { text: 'WEATHER (Pogoda)', isCorrect: false },
+        riddle: {
+          qEn: 'Where do you go to sleep at night in your house?',
+          qPl: '(Gdzie idziesz spać w nocy w swoim domu?)',
+          options: [
+            { textEn: 'The Bedroom (Sypialnia)', isCorrect: true },
+            { textEn: 'The Garden (Ogród)', isCorrect: false },
+            { textEn: 'The Kitchen (Kuchnia)', isCorrect: false }
+          ]
+        }
+      },
+      {
+        id: 'colors_numbers',
+        nameEn: 'Rainbow & Numbers Island',
+        namePl: 'Wyspa Kolorów i Liczb',
+        icon: '🎨',
+        color: 0x8b5cf6,
+        colorHex: '#8b5cf6',
+        storyIntro: 'Tęcza straciła swój niebieski blask! Odszukaj litery B-L-U-E, przejdź przez tęczową bramę i pomóż robotowi.',
+        npcName: 'Sparky Bot',
+        npcRole: 'Color Guardian',
+        npcEmoji: '🤖',
+        collectorWord: 'BLUE',
+        collectorItems: ['B', 'L', 'U', 'E'],
+        sortPromptEn: 'Which gate shows COLORS?',
+        sortPromptPl: 'Która brama to KOLORY?',
+        sortGateA: { text: 'COLORS (Kolory)', isCorrect: true },
+        sortGateB: { text: 'SPORTS (Sporty)', isCorrect: false },
+        riddle: {
+          qEn: 'Two plus three makes what number? (2 + 3 = ?)',
+          qPl: '(Ile to jest 2 + 3 po angielsku?)',
+          options: [
+            { textEn: 'Five (5)', isCorrect: true },
+            { textEn: 'Ten (10)', isCorrect: false },
+            { textEn: 'Four (4)', isCorrect: false }
+          ]
+        }
+      }
+    ];
+
+    const VOCABULARY_LIST = [
+      { en: 'Lion', pl: 'Lew' },
+      { en: 'Elephant', pl: 'Słoń' },
+      { en: 'Giraffe', pl: 'Żyrafa' },
+      { en: 'Apple', pl: 'Jabłko' },
+      { en: 'Bread', pl: 'Chleb' },
+      { en: 'Milk', pl: 'Mleko' },
+      { en: 'Book', pl: 'Książka' },
+      { en: 'Pencil', pl: 'Ołówek' },
+      { en: 'Schoolbag', pl: 'Plecak' },
+      { en: 'House', pl: 'Dom' },
+      { en: 'Bedroom', pl: 'Sypialnia' },
+      { en: 'Door', pl: 'Drzwi' },
+      { en: 'Blue', pl: 'Niebieski' },
+      { en: 'Red', pl: 'Czerwony' },
+      { en: 'Five', pl: 'Pięć (5)' }
+    ];
+
+    /* ==========================================================================
+       4. GAME STATE & AVATAR
+       ========================================================================== */
+    const State = {
+      score: 0,
+      coins: 25,
+      selectedZones: [], // 3 islands chosen for current session
+      activeIslandIdx: 0,
+      collectedLettersByZone: {}, // zoneId -> Set of letters collected
+      gateSolvedByZone: {}, // zoneId -> boolean
+      npcSolvedByZone: {}, // zoneId -> boolean
+      badges: new Set(),
+      avatar: {
+        shirtColor: '#3b82f6',
+        pantsColor: '#1e3a8a',
+        hat: 'none',
+        wings: false
+      },
+      currentNearInteractable: null
+    };
+
+    const SHOP_ITEMS = [
+      { id: 'shirt_green', type: 'shirt', name: 'Zielona Bluza', color: '#10b981', price: 0, icon: '👕' },
+      { id: 'shirt_red', type: 'shirt', name: 'Czerwona Bluza', color: '#ef4444', price: 5, icon: '👕' },
+      { id: 'shirt_gold', type: 'shirt', name: 'Złota Bluza', color: '#f59e0b', price: 10, icon: '👕' },
+      { id: 'hat_explorer', type: 'hat', name: 'Kapelusz Odkrywcy', val: 'explorer', price: 10, icon: '🤠' },
+      { id: 'hat_crown', type: 'hat', name: 'Złota Korona', val: 'crown', price: 15, icon: '👑' },
+      { id: 'hat_ears', type: 'hat', name: 'Uszy Kotka', val: 'ears', price: 10, icon: '🐱' },
+      { id: 'wings_angel', type: 'wings', name: 'Skrzydła 3D', val: true, price: 25, icon: '🪽' }
+    ];
+    let ownedItems = new Set(['shirt_green']);
+
+    /* ==========================================================================
+       5. THREE.JS 3D WORLD WITH ENHANCED GRAPHICS & RIGID BODIES
+       ========================================================================== */
+    let scene, camera, renderer, clock;
+    let playerMesh, playerPos = new THREE.Vector3(0, 0, 0), playerVelocity = new THREE.Vector3(0, 0, 0);
+    let playerRotation = 0, isGrounded = true;
+    let walkCycle = 0, wasGroundedLastFrame = true;
+    let playerSquash = new THREE.Vector3(1, 1, 1);
+    let cameraYaw = 0, cameraPitch = 0.38, cameraDistance = 9.0;
+    let isPointerDown = false, prevPointerX = 0, prevPointerY = 0;
+
+    const keys = {};
+    const virtualStick = { x: 0, y: 0 };
+    let virtualJump = false;
+
+    let interactables = [];
+    let worldPropsGroup;
+    let cloudsGroup;
+
+    // Defined Island Center Coordinates
+    const ISLAND_COORDS = [
+      { x: 0, z: 0, name: 'Central Hub' },
+      { x: -32, z: -18, name: 'Island 1' },
+      { x: 32, z: -18, name: 'Island 2' },
+      { x: 0, z: 36, name: 'Island 3' }
+    ];
+
+    function initThree() {
+      const container = document.getElementById('game-canvas-container');
+      clock = new THREE.Clock();
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x38bdf8);
+      scene.fog = new THREE.Fog(0x38bdf8, 35, 95);
+
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Studio 3-Point Lighting
+      const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x0284c7, 0.7);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffedd5, 1.35);
+      dirLight.position.set(28, 45, 28);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      dirLight.shadow.bias = -0.0005;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 110;
+      const d = 45;
+      dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      // Fill light
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.35);
+      fillLight.position.set(-28, 20, -28);
+      scene.add(fillLight);
+
+      window.addEventListener('resize', onWindowResize);
+      setupInputs(container);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function setupInputs(dom) {
+      window.addEventListener('keydown', e => {
+        keys[e.key.toLowerCase()] = true;
+        keys[e.code] = true;
+        if (e.key === 'e' || e.key === 'E') triggerProximityInteract();
+        if (e.key === 'Escape') {
+          // Toggle Map / Pause Screen
+          const mapEl = document.getElementById('world-map-screen');
+          if (mapEl.style.display === 'flex') {
+            window.teleportToIsland(State.activeIslandIdx);
+          } else {
+            window.showScreen('map');
+          }
+        }
+      });
+      window.addEventListener('keyup', e => {
+        keys[e.key.toLowerCase()] = false;
+        keys[e.code] = false;
+      });
+
+      dom.addEventListener('pointerdown', e => {
+        if (e.button === 0) {
+          isPointerDown = true;
+          prevPointerX = e.clientX;
+          prevPointerY = e.clientY;
+        }
+      });
+      window.addEventListener('pointermove', e => {
+        if (!isPointerDown) return;
+        const dx = e.clientX - prevPointerX;
+        const dy = e.clientY - prevPointerY;
+        prevPointerX = e.clientX;
+        prevPointerY = e.clientY;
+        cameraYaw -= dx * 0.006;
+        cameraPitch = Math.max(0.12, Math.min(1.15, cameraPitch + dy * 0.005));
+      });
+      window.addEventListener('pointerup', () => isPointerDown = false);
+      dom.addEventListener('wheel', e => {
+        cameraDistance = Math.max(4.5, Math.min(16.0, cameraDistance + e.deltaY * 0.008));
+      }, { passive: true });
+
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.getElementById('mobile-controls').style.display = 'block';
+        setupTouchJoystick();
+      }
+    }
+
+    function setupTouchJoystick() {
+      const stickZone = document.getElementById('mobile-stick');
+      const knob = document.getElementById('stick-knob');
+      let touchId = null;
+
+      stickZone.addEventListener('touchstart', e => {
+        const t = e.changedTouches[0];
+        touchId = t.identifier;
+        updateKnob(t.clientX, t.clientY);
+      });
+      window.addEventListener('touchmove', e => {
+        if (touchId === null) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (t.identifier === touchId) {
+            updateKnob(t.clientX, t.clientY);
+            break;
+          }
+        }
+      });
+      const endTouch = e => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === touchId) {
+            touchId = null;
+            knob.style.transform = 'translate(0px, 0px)';
+            virtualStick.x = 0;
+            virtualStick.y = 0;
+            break;
+          }
+        }
+      };
+      window.addEventListener('touchend', endTouch);
+      window.addEventListener('touchcancel', endTouch);
+
+      function updateKnob(cx, cy) {
+        const rect = stickZone.getBoundingClientRect();
+        const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        const maxR = rect.width / 2;
+        let dx = cx - center.x;
+        let dy = cy - center.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxR) {
+          dx = (dx / dist) * maxR;
+          dy = (dy / dist) * maxR;
+        }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        virtualStick.x = dx / maxR;
+        virtualStick.y = dy / maxR;
+      }
+    }
+
+    /* Create Player Mesh */
+    function createPlayerMesh() {
+      const player = new THREE.Group();
+
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.6 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: State.avatar.shirtColor, roughness: 0.7 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: State.avatar.pantsColor, roughness: 0.8 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.5), shirtMat);
+      torso.position.y = 1.05;
+      torso.castShadow = true;
+      torso.name = 'player_torso';
+      player.add(torso);
+
+      // Head
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), skinMat);
+      head.position.y = 1.75;
+      head.castShadow = true;
+      head.name = 'player_head';
+      player.add(head);
+
+      // Expressive Eyes
+      [-0.15, 0.15].forEach(x => {
+        const eye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), darkMat);
+        eye.position.set(x, 1.8, 0.33);
+        player.add(eye);
+      });
+
+      // Hat / Crown / Cat ears
+      if (State.avatar.hat === 'explorer') {
+        const brim = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.08, 1.15), new THREE.MeshStandardMaterial({ color: 0xca8a04 }));
+        brim.position.y = 2.1;
+        player.add(brim);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.38, 0.7), new THREE.MeshStandardMaterial({ color: 0xca8a04 }));
+        top.position.y = 2.3;
+        player.add(top);
+      } else if (State.avatar.hat === 'crown') {
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 0.32, 5), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.85 }));
+        crown.position.y = 2.22;
+        player.add(crown);
+      } else if (State.avatar.hat === 'ears') {
+        [-0.24, 0.24].forEach(x => {
+          const ear = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 4), new THREE.MeshStandardMaterial({ color: 0xf472b6 }));
+          ear.position.set(x, 2.22, 0);
+          player.add(ear);
+        });
+      }
+
+      // 3D Wings
+      if (State.avatar.wings) {
+        [-0.52, 0.52].forEach((x, i) => {
+          const wing = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.38, 0.06), new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.3 }));
+          wing.position.set(x, 1.25, -0.34);
+          wing.rotation.y = i === 0 ? 0.45 : -0.45;
+          player.add(wing);
+        });
+      }
+
+      // Arms
+      const armLeftPivot = new THREE.Group();
+      armLeftPivot.position.set(-0.55, 1.35, 0);
+      armLeftPivot.name = 'arm_left';
+      const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.7, 0.26), shirtMat);
+      armLeft.position.y = -0.3;
+      armLeft.castShadow = true;
+      armLeftPivot.add(armLeft);
+      player.add(armLeftPivot);
+
+      const armRightPivot = new THREE.Group();
+      armRightPivot.position.set(0.55, 1.35, 0);
+      armRightPivot.name = 'arm_right';
+      const armRight = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.7, 0.26), shirtMat);
+      armRight.position.y = -0.3;
+      armRight.castShadow = true;
+      armRightPivot.add(armRight);
+      player.add(armRightPivot);
+
+      // Legs
+      const legLeftPivot = new THREE.Group();
+      legLeftPivot.position.set(-0.22, 0.65, 0);
+      legLeftPivot.name = 'leg_left';
+      const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.65, 0.28), pantsMat);
+      legLeft.position.y = -0.3;
+      legLeft.castShadow = true;
+      legLeftPivot.add(legLeft);
+      player.add(legLeftPivot);
+
+      const legRightPivot = new THREE.Group();
+      legRightPivot.position.set(0.22, 0.65, 0);
+      legRightPivot.name = 'leg_right';
+      const legRight = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.65, 0.28), pantsMat);
+      legRight.position.y = -0.3;
+      legRight.castShadow = true;
+      legRightPivot.add(legRight);
+      player.add(legRightPivot);
+
+      // Contact shadow disk
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.52, 16),
+        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.02;
+      shadow.name = 'player_shadow';
+      player.add(shadow);
+
+      return player;
+    }
+
+    /* Build Detailed Floating Islands with Rock Base & Floating Clouds */
+    function buildWorld() {
+      if (worldPropsGroup) scene.remove(worldPropsGroup);
+      worldPropsGroup = new THREE.Group();
+      interactables = [];
+
+      // 1. Central Hub Island
+      buildFloatingIsland(0, 0, 13, 0x10b981, 'Central Hub', worldPropsGroup);
+
+      // Central Return Portal on Hub
+      buildIslandPortal(0, 0, 'Wróć do Wyboru Wysp (World Map)', worldPropsGroup, true);
+
+      // 2. The 3 Selected Islands
+      State.selectedZones.forEach((zone, idx) => {
+        const coord = ISLAND_COORDS[idx + 1];
+        buildFloatingIsland(coord.x, coord.z, 14, zone.color, zone.nameEn, worldPropsGroup);
+
+        // Bridge to Hub
+        buildBridge(new THREE.Vector3(0, 0, 0), new THREE.Vector3(coord.x, 0, coord.z), worldPropsGroup);
+
+        // Island Return Portal
+        buildIslandPortal(coord.x - 7, coord.z - 7, `Wróć do Mapy Świata`, worldPropsGroup);
+
+        // Themed 3D Scenery Props
+        buildThemedProps(zone, coord.x, coord.z, worldPropsGroup);
+
+        // NPC with overhead marker
+        buildNPC(zone, coord.x, coord.z, worldPropsGroup);
+
+        // Mini-game 1: "Word Collector" (Floating 3D Letters)
+        buildWordCollectorLetters(zone, coord.x, coord.z, worldPropsGroup);
+
+        // Mini-game 2: "Sorting Gates"
+        buildSortingGates(zone, coord.x, coord.z, worldPropsGroup);
+      });
+
+      // 3. Floating procedural clouds
+      buildClouds(worldPropsGroup);
+
+      scene.add(worldPropsGroup);
+    }
+
+    function buildFloatingIsland(x, z, radius, topColor, label, parent) {
+      const island = new THREE.Group();
+      island.position.set(x, 0, z);
+
+      // Grassy top layer
+      const topGeo = new THREE.CylinderGeometry(radius, radius + 1, 3.0, 10);
+      const topMat = new THREE.MeshStandardMaterial({ color: topColor, roughness: 0.8 });
+      const topMesh = new THREE.Mesh(topGeo, topMat);
+      topMesh.position.y = -1.5;
+      topMesh.receiveShadow = true;
+      island.add(topMesh);
+
+      // Earthy rock underside (cone taper)
+      const rockGeo = new THREE.ConeGeometry(radius + 1.2, 7.5, 9);
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 0.95 });
+      const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+      rockMesh.rotation.x = Math.PI;
+      rockMesh.position.y = -6.5;
+      island.add(rockMesh);
+
+      parent.add(island);
+    }
+
+    function buildIslandPortal(x, z, label, parent, isHub = false) {
+      const portal = new THREE.Group();
+      portal.position.set(x, 0, z);
+
+      const archMat = new THREE.MeshStandardMaterial({ color: isHub ? 0xfacc15 : 0x38bdf8, metalness: 0.5 });
+      [-1.3, 1.3].forEach(px => {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.2, 0.45), archMat);
+        pillar.position.set(px, 1.6, 0);
+        portal.add(pillar);
+      });
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.45, 0.45), archMat);
+      topBar.position.y = 3.2;
+      portal.add(topBar);
+
+      // Swirling portal aura
+      const aura = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.2, 3.0),
+        new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+      );
+      aura.position.y = 1.6;
+      portal.add(aura);
+
+      parent.add(portal);
+
+      interactables.push({
+        type: 'portal',
+        id: 'portal_' + x + '_' + z,
+        name: label,
+        position: new THREE.Vector3(x, 0, z)
+      });
+    }
+
+    function buildBridge(start, end, parent) {
+      const dir = new THREE.Vector3().subVectors(end, start);
+      const dist = dir.length();
+      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+      const angle = Math.atan2(dir.x, dir.z);
+
+      const bridge = new THREE.Group();
+      bridge.position.copy(mid);
+      bridge.rotation.y = angle;
+
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+      const planks = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, dist - 16), woodMat);
+      planks.position.y = -0.1;
+      planks.receiveShadow = true;
+      bridge.add(planks);
+
+      // Bridge rope side railings
+      [-1.3, 1.3].forEach(rx => {
+        const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, dist - 16), woodMat);
+        rail.rotation.x = Math.PI / 2;
+        rail.position.set(rx, 0.7, 0);
+        bridge.add(rail);
+      });
+
+      parent.add(bridge);
+    }
+
+    function buildClouds(parent) {
+      cloudsGroup = new THREE.Group();
+      const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, transparent: true, opacity: 0.85 });
+
+      for (let i = 0; i < 8; i++) {
+        const cloud = new THREE.Group();
+        const cx = (Math.random() - 0.5) * 120;
+        const cy = 10 + Math.random() * 15;
+        const cz = (Math.random() - 0.5) * 120;
+        cloud.position.set(cx, cy, cz);
+
+        for (let p = 0; p < 4; p++) {
+          const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5 + Math.random() * 2), cloudMat);
+          puff.position.set((p - 1.5) * 2.2, Math.random() * 0.8, (Math.random() - 0.5) * 1.5);
+          cloud.add(puff);
+        }
+        cloudsGroup.add(cloud);
+      }
+      parent.add(cloudsGroup);
+    }
+
+    function buildThemedProps(zone, cx, cz, parent) {
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+      const foliageMat = new THREE.MeshStandardMaterial({ color: 0x15803d });
+
+      if (zone.id === 'zoo') {
+        // Trees and 3D Low-Poly Lion Mascot
+        const lionGroup = new THREE.Group();
+        lionGroup.position.set(cx - 5, 0, cz - 4);
+        const lionBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 2.2), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+        lionBody.position.y = 1.0;
+        lionGroup.add(lionBody);
+        const lionMane = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.8, 1.2), new THREE.MeshStandardMaterial({ color: 0x92400e }));
+        lionMane.position.set(0, 1.6, 1.0);
+        lionGroup.add(lionMane);
+        parent.add(lionGroup);
+
+        // Palm tree
+        const palm = new THREE.Group();
+        palm.position.set(cx + 6, 0, cz - 4);
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 4, 6), woodMat);
+        trunk.position.y = 2;
+        palm.add(trunk);
+        const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(2.0), foliageMat);
+        leaves.position.y = 4.2;
+        palm.add(leaves);
+        parent.add(palm);
+
+      } else if (zone.id === 'kitchen') {
+        // Giant Donut & Bakery Stall
+        const donut = new THREE.Mesh(
+          new THREE.TorusGeometry(1.4, 0.65, 8, 16),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 })
+        );
+        donut.position.set(cx, 2.2, cz - 5);
+        donut.rotation.x = Math.PI / 3;
+        parent.add(donut);
+
+        // Counter
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 2.0), woodMat);
+        counter.position.set(cx, 0.6, cz - 5);
+        parent.add(counter);
+
+      } else if (zone.id === 'school') {
+        // Bell Tower with Clock & Giant Pencil
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 3), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+        tower.position.set(cx, 3, cz - 6);
+        parent.add(tower);
+
+        const clockFace = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.15, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        clockFace.rotation.x = Math.PI / 2;
+        clockFace.position.set(cx, 4.8, cz - 4.4);
+        parent.add(clockFace);
+
+        // Giant Pencil prop
+        const pencil = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
+        pencil.position.set(cx + 6, 1.8, cz - 3);
+        pencil.rotation.z = 0.25;
+        parent.add(pencil);
+
+      } else if (zone.id === 'house') {
+        // Cottage House with chimney smoke
+        const house = new THREE.Mesh(new THREE.BoxGeometry(5, 3.8, 4.5), new THREE.MeshStandardMaterial({ color: 0xfb7185 }));
+        house.position.set(cx, 1.9, cz - 5);
+        parent.add(house);
+
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(4.2, 2.2, 4), new THREE.MeshStandardMaterial({ color: 0x991b1b }));
+        roof.position.set(cx, 4.8, cz - 5);
+        roof.rotation.y = Math.PI / 4;
+        parent.add(roof);
+
+      } else if (zone.id === 'colors_numbers') {
+        // Glowing Rainbow Arch
+        const rainbowGeo = new THREE.TorusGeometry(5, 0.6, 8, 20, Math.PI);
+        const rainbowMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.2 });
+        const rainbow = new THREE.Mesh(rainbowGeo, rainbowMat);
+        rainbow.position.set(cx, 0, cz - 6);
+        parent.add(rainbow);
+
+        // Floating numbered dice
+        const dice = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
+        dice.position.set(cx + 5, 2.5, cz - 2);
+        dice.rotation.set(0.5, 0.5, 0);
+        parent.add(dice);
+      }
+    }
+
+    function buildNPC(zone, cx, cz, parent) {
+      const npc = new THREE.Group();
+      npc.position.set(cx, 0, cz);
+
+      // Blocky NPC
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.5), new THREE.MeshStandardMaterial({ color: zone.color }));
+      body.position.y = 1.0;
+      npc.add(body);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), new THREE.MeshStandardMaterial({ color: 0xfde047 }));
+      head.position.y = 1.7;
+      npc.add(head);
+
+      // Overhead animated marker
+      const marker = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+      marker.rotation.x = Math.PI;
+      marker.position.y = 2.5;
+      marker.name = 'npc_marker';
+      npc.add(marker);
+
+      parent.add(npc);
+
+      interactables.push({
+        type: 'npc',
+        id: 'npc_' + zone.id,
+        name: zone.npcName,
+        zone: zone,
+        position: new THREE.Vector3(cx, 0, cz)
+      });
+    }
+
+    function buildWordCollectorLetters(zone, cx, cz, parent) {
+      const offsets = [
+        { x: -5, z: 2 },
+        { x: -3, z: 6 },
+        { x: 4, z: 5 },
+        { x: 6, z: -2 },
+        { x: 3, z: -5 }
+      ];
+
+      zone.collectorItems.forEach((letter, idx) => {
+        const off = offsets[idx % offsets.length];
+        const letterGroup = new THREE.Group();
+        letterGroup.position.set(cx + off.x, 0.9, cz + off.z);
+        letterGroup.name = 'letter_' + zone.id + '_' + idx;
+
+        const cube = new THREE.Mesh(
+          new THREE.BoxGeometry(0.8, 0.8, 0.8),
+          new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.3, roughness: 0.25 })
+        );
+        letterGroup.add(cube);
+
+        // Letter Sprite Texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 128; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 84px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(letter, 64, 64);
+        const tex = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+        sprite.scale.set(1.3, 1.3, 1.3);
+        sprite.position.y = 0.85;
+        letterGroup.add(sprite);
+
+        parent.add(letterGroup);
+
+        interactables.push({
+          type: 'letter',
+          id: letterGroup.name,
+          letter: letter,
+          zoneId: zone.id,
+          mesh: letterGroup,
+          position: new THREE.Vector3(cx + off.x, 0.9, cz + off.z)
+        });
+      });
+    }
+
+    function buildSortingGates(zone, cx, cz, parent) {
+      buildSingleGate(zone.sortGateA.text, cx - 4.5, cz + 6.5, true, zone.id, parent);
+      buildSingleGate(zone.sortGateB.text, cx + 4.5, cz + 6.5, false, zone.id, parent);
+    }
+
+    function buildSingleGate(text, x, z, isCorrect, zoneId, parent) {
+      const gate = new THREE.Group();
+      gate.position.set(x, 0, z);
+
+      const frameMat = new THREE.MeshStandardMaterial({ color: isCorrect ? 0x10b981 : 0xef4444 });
+      [-1.3, 1.3].forEach(px => {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.2, 0.45), frameMat);
+        pillar.position.set(px, 1.6, 0);
+        gate.add(pillar);
+      });
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.45, 0.45), frameMat);
+      topBar.position.y = 3.2;
+      gate.add(topBar);
+
+      // Glowing Portal Field
+      const portalMat = new THREE.MeshBasicMaterial({
+        color: isCorrect ? 0x34d399 : 0xf87171,
+        transparent: true,
+        opacity: 0.45
+      });
+      const portal = new THREE.Mesh(new THREE.PlaneGeometry(2.15, 2.9), portalMat);
+      portal.position.y = 1.6;
+      gate.add(portal);
+
+      parent.add(gate);
+
+      interactables.push({
+        type: 'gate',
+        id: 'gate_' + zoneId + '_' + (isCorrect ? 'correct' : 'wrong'),
+        text: text,
+        isCorrect: isCorrect,
+        zoneId: zoneId,
+        position: new THREE.Vector3(x, 0, z)
+      });
+    }
+
+    /* ==========================================================================
+       6. 3D GAME RENDER & TICK LOOP
+       ========================================================================== */
+    function updateGame() {
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const elapsed = clock.getElapsedTime();
+
+      // Gather Input
+      let moveForward = 0;
+      let moveRight = 0;
+
+      if (keys['w'] || keys['arrowup']) moveForward += 1;
+      if (keys['s'] || keys['arrowdown']) moveForward -= 1;
+      if (keys['d'] || keys['arrowright']) moveRight += 1;
+      if (keys['a'] || keys['arrowleft']) moveRight -= 1;
+
+      if (Math.abs(virtualStick.y) > 0.1) moveForward -= virtualStick.y;
+      if (Math.abs(virtualStick.x) > 0.1) moveRight += virtualStick.x;
+
+      const isSprinting = keys['shift'];
+      const baseSpeed = isSprinting ? 9.5 : 6.0;
+      const hasMoveInput = (moveForward !== 0 || moveRight !== 0);
+
+      if (hasMoveInput) {
+        const len = Math.hypot(moveRight, moveForward);
+        const normRight = moveRight / (len > 1 ? len : 1);
+        const normForward = moveForward / (len > 1 ? len : 1);
+
+        const sinYaw = Math.sin(cameraYaw);
+        const cosYaw = Math.cos(cameraYaw);
+        const worldDx = normForward * sinYaw - normRight * cosYaw;
+        const worldDz = normForward * cosYaw + normRight * sinYaw;
+
+        const targetAngle = Math.atan2(worldDx, worldDz);
+        playerRotation = THREE.MathUtils.damp(playerRotation, targetAngle, 12, delta);
+
+        playerPos.x += worldDx * baseSpeed * delta;
+        playerPos.z += worldDz * baseSpeed * delta;
+
+        walkCycle += delta * (isSprinting ? 16 : 10);
+      } else {
+        walkCycle = THREE.MathUtils.damp(walkCycle, 0, 10, delta);
+      }
+
+      // Jump & Gravity (Synchronized Jump Animation)
+      const jumpRequested = keys[' '] || virtualJump;
+      if (jumpRequested && isGrounded) {
+        playerVelocity.y = 8.5;
+        isGrounded = false;
+        playerSquash.set(0.86, 1.25, 0.86);
+        SoundFx.jump();
+      }
+
+      playerVelocity.y -= 22 * delta;
+      playerPos.y += playerVelocity.y * delta;
+
+      if (playerPos.y <= 0) {
+        if (!wasGroundedLastFrame) {
+          playerSquash.set(1.22, 0.78, 1.22); // Impact squash
+        }
+        playerPos.y = 0;
+        playerVelocity.y = 0;
+        isGrounded = true;
+      }
+
+      // Restore squash & stretch scale to 1.0
+      playerSquash.x = THREE.MathUtils.damp(playerSquash.x, 1.0, 14, delta);
+      playerSquash.y = THREE.MathUtils.damp(playerSquash.y, 1.0, 14, delta);
+      playerSquash.z = THREE.MathUtils.damp(playerSquash.z, 1.0, 14, delta);
+
+      playerMesh.position.copy(playerPos);
+      playerMesh.rotation.y = playerRotation;
+      playerMesh.scale.copy(playerSquash);
+
+      // Contact shadow scaling with altitude
+      const shadow = playerMesh.getObjectByName('player_shadow');
+      if (shadow) {
+        shadow.position.y = -playerPos.y + 0.02;
+        const h = Math.max(0, playerPos.y);
+        const sScale = Math.max(0.35, 1.0 - h * 0.25);
+        shadow.scale.set(sScale, sScale, sScale);
+        shadow.material.opacity = 0.35 * Math.max(0.12, 1.0 - h * 0.3);
+      }
+
+      // Synchronized limb animations
+      const leftArm = playerMesh.getObjectByName('arm_left');
+      const rightArm = playerMesh.getObjectByName('arm_right');
+      const leftLeg = playerMesh.getObjectByName('leg_left');
+      const rightLeg = playerMesh.getObjectByName('leg_right');
+      const torso = playerMesh.getObjectByName('player_torso');
+
+      if (leftArm && rightArm && leftLeg && rightLeg && torso) {
+        if (isGrounded) {
+          const swing = hasMoveInput ? Math.sin(walkCycle) * 0.65 : 0;
+          leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, -swing, 18, delta);
+          rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, swing, 18, delta);
+          leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, swing, 18, delta);
+          rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, -swing, 18, delta);
+          torso.position.y = THREE.MathUtils.damp(torso.position.y, 1.05 + (hasMoveInput ? Math.abs(Math.sin(walkCycle * 2)) * 0.08 : 0), 16, delta);
+        } else {
+          const isAscending = playerVelocity.y > 0;
+          if (hasMoveInput) {
+            leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, isAscending ? -0.7 : -0.2, 14, delta);
+            rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, isAscending ? 0.65 : 0.25, 14, delta);
+            leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, isAscending ? -1.35 : -0.6, 14, delta);
+            rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, isAscending ? 0.75 : 0.3, 14, delta);
+          } else {
+            leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, isAscending ? -1.5 : -0.35, 14, delta);
+            rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, isAscending ? -1.5 : -0.35, 14, delta);
+            leftLeg.rotation.x = THREE.MathUtils.damp(leftLeg.rotation.x, isAscending ? -0.5 : 0.15, 14, delta);
+            rightLeg.rotation.x = THREE.MathUtils.damp(rightLeg.rotation.x, isAscending ? -0.5 : 0.15, 14, delta);
+          }
+        }
+      }
+
+      wasGroundedLastFrame = isGrounded;
+
+      // Camera Follow
+      const targetCamX = playerPos.x - Math.sin(cameraYaw) * Math.cos(cameraPitch) * cameraDistance;
+      const targetCamY = playerPos.y + 1.6 + Math.sin(cameraPitch) * cameraDistance;
+      const targetCamZ = playerPos.z - Math.cos(cameraYaw) * Math.cos(cameraPitch) * cameraDistance;
+
+      camera.position.x = THREE.MathUtils.damp(camera.position.x, targetCamX, 10, delta);
+      camera.position.y = THREE.MathUtils.damp(camera.position.y, targetCamY, 10, delta);
+      camera.position.z = THREE.MathUtils.damp(camera.position.z, targetCamZ, 10, delta);
+      camera.lookAt(playerPos.x, playerPos.y + 1.4, playerPos.z);
+
+      // Rotate letters, markers & clouds
+      interactables.forEach(item => {
+        if (item.type === 'letter' && item.mesh) {
+          item.mesh.rotation.y = elapsed * 2.0;
+          item.mesh.position.y = 0.9 + Math.sin(elapsed * 3 + item.position.x) * 0.15;
+        }
+      });
+      if (cloudsGroup) {
+        cloudsGroup.rotation.y = elapsed * 0.015;
+      }
+
+      checkProximity();
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(updateGame);
+    }
+
+    function checkProximity() {
+      let nearest = null;
+      let minDist = 3.6;
+
+      for (const item of interactables) {
+        const dist = playerPos.distanceTo(item.position);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = item;
+        }
+      }
+
+      State.currentNearInteractable = nearest;
+      const prompt = document.getElementById('interact-prompt');
+
+      if (nearest) {
+        if (nearest.type === 'letter') {
+          prompt.innerHTML = `[E] lub Dotknij: Zbierz literę [${nearest.letter}]!`;
+        } else if (nearest.type === 'gate') {
+          prompt.innerHTML = `[E] lub Przejdź: Wybierz bramę ${nearest.text}!`;
+        } else if (nearest.type === 'npc') {
+          prompt.innerHTML = `[E] lub Dotknij: Porozmawiaj z ${nearest.name}!`;
+        } else if (nearest.type === 'portal') {
+          prompt.innerHTML = `[E] lub Wejdź: ${nearest.name}!`;
+        }
+        prompt.style.display = 'block';
+      } else {
+        prompt.style.display = 'none';
+      }
+    }
+
+    /* ==========================================================================
+       7. INTERACTION RESOLVERS & TELEPORTATION
+       ========================================================================== */
+    window.triggerProximityInteract = function() {
+      const item = State.currentNearInteractable;
+      if (!item) return;
+
+      if (item.type === 'portal') {
+        // Portal returns player to World Map selector
+        SoundFx.chime();
+        window.showScreen('map');
+
+      } else if (item.type === 'letter') {
+        // Mini-game 1: Word Collector
+        SoundFx.coin();
+        confetti({ particleCount: 35, origin: { y: 0.7 } });
+        worldPropsGroup.remove(item.mesh);
+        interactables = interactables.filter(i => i !== item);
+
+        if (!State.collectedLettersByZone[item.zoneId]) {
+          State.collectedLettersByZone[item.zoneId] = new Set();
+        }
+        State.collectedLettersByZone[item.zoneId].add(item.letter);
+
+        State.score += 25;
+        State.coins += 5;
+        updateHUD();
+        checkBadges('letter');
+
+      } else if (item.type === 'gate') {
+        // Mini-game 2: Sorting Gate
+        if (item.isCorrect) {
+          SoundFx.chime();
+          confetti({ particleCount: 65, origin: { y: 0.6 } });
+          showNotification('Poprawna Brama! +50 Score (Correct Gate!)');
+          State.gateSolvedByZone[item.zoneId] = true;
+          State.score += 50;
+          State.coins += 10;
+          updateHUD();
+          checkBadges('gate');
+        } else {
+          SoundFx.oops();
+          showNotification('Oops! Spróbuj drugiej bramy! (Try the other gate)');
+        }
+
+      } else if (item.type === 'npc') {
+        // Mini-game 3: NPC Riddle
+        openNPCDialogue(item.zone);
+      }
+    };
+
+    window.triggerJump = function() {
+      virtualJump = true;
+      setTimeout(() => virtualJump = false, 150);
+    };
+
+    function openNPCDialogue(zone) {
+      document.getElementById('dialogue-npc-name').innerText = zone.npcName;
+      document.getElementById('dialogue-npc-role').innerText = zone.npcRole;
+      document.getElementById('dialogue-npc-avatar').innerText = zone.npcEmoji;
+      document.getElementById('dialogue-question-en').innerText = zone.riddle.qEn;
+      document.getElementById('dialogue-question-pl').innerText = zone.riddle.qPl;
+
+      TTS.speak(zone.riddle.qEn);
+
+      const container = document.getElementById('dialogue-options-container');
+      container.innerHTML = '';
+
+      zone.riddle.options.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = 'dialogue-opt';
+        btn.innerHTML = `<span>${opt.textEn}</span> <span>➜</span>`;
+        btn.onclick = () => {
+          if (opt.isCorrect) {
+            SoundFx.chime();
+            confetti({ particleCount: 80, origin: { y: 0.6 } });
+            btn.style.background = '#dcfce7';
+            btn.style.borderColor = '#16a34a';
+            setTimeout(() => {
+              window.closeModal('dialogue');
+              State.score += 100;
+              State.coins += 15;
+              State.npcSolvedByZone[zone.id] = true;
+              updateHUD();
+              checkBadges('riddle');
+              checkWinCondition();
+            }, 600);
+          } else {
+            SoundFx.oops();
+            btn.style.background = '#fee2e2';
+            btn.style.borderColor = '#dc2626';
+          }
+        };
+        container.appendChild(btn);
+      });
+
+      window.openModal('dialogue');
+    }
+
+    window.speakCurrentQuestion = function() {
+      const text = document.getElementById('dialogue-question-en').innerText;
+      TTS.speak(text);
+    };
+
+    function checkWinCondition() {
+      const totalZones = State.selectedZones.length;
+      let solvedCount = 0;
+      State.selectedZones.forEach(z => {
+        if (State.npcSolvedByZone[z.id]) solvedCount++;
+      });
+
+      if (solvedCount >= totalZones) {
+        setTimeout(() => {
+          SoundFx.fanfare();
+          confetti({ particleCount: 160, spread: 90, origin: { y: 0.5 } });
+          document.getElementById('win-score').innerText = State.score;
+          document.getElementById('win-coins').innerText = State.coins;
+          window.openModal('win');
+        }, 800);
+      }
+    }
+
+    /* Teleport player to chosen island */
+    window.teleportToIsland = function(islandIndex) {
+      SoundFx.chime();
+      State.activeIslandIdx = islandIndex;
+      const target = ISLAND_COORDS[islandIndex];
+      playerPos.set(target.x, 0, target.z);
+      playerVelocity.set(0, 0, 0);
+
+      document.getElementById('world-map-screen').style.display = 'none';
+      document.getElementById('hud-layer').style.display = 'flex';
+
+      updateHUD();
+      confetti({ particleCount: 40, origin: { y: 0.6 } });
+    };
+
+    /* ==========================================================================
+       8. BADGES & TOAST NOTIFICATIONS
+       ========================================================================== */
+    function checkBadges(trigger) {
+      if (trigger === 'riddle' && !State.badges.has('first_quest')) {
+        State.badges.add('first_quest');
+        showBadgeToast('🎖️', 'First Quest Done!', 'Ukończono pierwsze zadanie z mieszkańcem!');
+      }
+      if (trigger === 'letter' && State.score >= 50 && !State.badges.has('spelling_master')) {
+        State.badges.add('spelling_master');
+        showBadgeToast('🔤', 'Spelling Master!', 'Zdobyto litery ze słówek!');
+      }
+      if (trigger === 'gate' && !State.badges.has('sorter')) {
+        State.badges.add('sorter');
+        showBadgeToast('🚪', 'Sorting Champion!', 'Poprawnie wybrano bramę kategorii!');
+      }
+      if (State.coins >= 50 && !State.badges.has('rich')) {
+        State.badges.add('rich');
+        showBadgeToast('💰', 'Golden Explorer!', 'Zebrano 50 monet w Wordland!');
+      }
+    }
+
+    function showBadgeToast(icon, name, desc) {
+      SoundFx.fanfare();
+      const toast = document.getElementById('badge-toast');
+      document.getElementById('badge-icon').innerText = icon;
+      document.getElementById('badge-name').innerText = name;
+      document.getElementById('badge-desc').innerText = desc;
+      toast.style.display = 'flex';
+      setTimeout(() => toast.style.display = 'none', 3500);
+    }
+
+    function showNotification(text) {
+      const toast = document.getElementById('badge-toast');
+      document.getElementById('badge-icon').innerText = '✨';
+      document.getElementById('badge-name').innerText = 'Word Quest';
+      document.getElementById('badge-desc').innerText = text;
+      toast.style.display = 'flex';
+      setTimeout(() => toast.style.display = 'none', 2500);
+    }
+
+    /* ==========================================================================
+       9. SHIFTING ISLANDS GENERATOR & INTERACTIVE MAP CARDS
+       ========================================================================== */
+    window.generateNewRandomGame = function() {
+      // Pick 3 random zones out of 5
+      const shuffled = [...ALL_ZONES].sort(() => 0.5 - Math.random());
+      State.selectedZones = shuffled.slice(0, 3);
+      State.collectedLettersByZone = {};
+      State.gateSolvedByZone = {};
+      State.npcSolvedByZone = {};
+      State.score = 0;
+      State.activeIslandIdx = 0;
+
+      // Populate Interactive Board on World Map Screen
+      const board = document.getElementById('islands-board-container');
+      board.innerHTML = '';
+
+      // Hub Card
+      const hubCard = document.createElement('div');
+      hubCard.className = 'island-card-btn';
+      hubCard.innerHTML = `
+        <span class="island-badge" style="background: #10b981;">Punkt Startowy</span>
+        <div style="font-size: 42px; margin-bottom: 6px;">🏛️</div>
+        <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Central Hub</div>
+        <div style="font-size: 13px; color: #64748b; margin: 6px 0; line-height: 1.4;">
+          Magiczna wyspa startowa. Stąd prowadzą mosty i portale na pozostałe 3 wyspy.
+        </div>
+        <button class="btn btn-primary" style="margin-top: 10px; width: 100%;" onclick="event.stopPropagation(); window.teleportToIsland(0);">
+          🚀 Ląduj na Hubie
+        </button>
+      `;
+      hubCard.onclick = () => window.teleportToIsland(0);
+      board.appendChild(hubCard);
+
+      // The 3 Shifting Themed Islands Cards
+      State.selectedZones.forEach((z, idx) => {
+        const card = document.createElement('div');
+        card.className = 'island-card-btn';
+        card.innerHTML = `
+          <span class="island-badge">Wyspa ${idx + 1}</span>
+          <div style="font-size: 42px; margin-bottom: 6px;">${z.icon}</div>
+          <div style="font-size: 20px; font-weight: 800; color: #0284c7;">${z.nameEn}</div>
+          <div style="font-size: 12px; font-weight: 700; color: #64748b;">${z.namePl}</div>
+          <div style="font-size: 13px; color: #475569; margin: 8px 0; line-height: 1.4;">
+            ${z.storyIntro}
+          </div>
+          <div style="font-size: 11px; font-weight: 800; color: ${z.colorHex}; margin-bottom: 8px;">
+            Słowo: ${z.collectorWord} • Strażnik: ${z.npcName}
+          </div>
+          <button class="btn btn-warning" style="width: 100%;" onclick="event.stopPropagation(); window.teleportToIsland(${idx + 1});">
+            ✈️ Leć na tę Wyspę!
+          </button>
+        `;
+        card.onclick = () => window.teleportToIsland(idx + 1);
+        board.appendChild(card);
+      });
+
+      // Reset Player position & Rebuild 3D world
+      playerPos.set(0, 0, 0);
+      buildWorld();
+      updateHUD();
+
+      window.closeModal('win');
+      window.showScreen('map');
+    };
+
+    window.showScreen = function(screen) {
+      if (screen === 'map') {
+        document.getElementById('world-map-screen').style.display = 'flex';
+        document.getElementById('hud-layer').style.display = 'none';
+        SoundFx.coin();
+      }
+    };
+
+    function updateHUD() {
+      document.getElementById('hud-score').innerText = State.score;
+      document.getElementById('hud-coins').innerText = State.coins;
+      document.getElementById('shop-coins-counter').innerText = State.coins;
+
+      // Determine which island the player is currently on or closest to
+      let nearestIslandIdx = 0;
+      let minDist = 999;
+      ISLAND_COORDS.forEach((coord, idx) => {
+        const d = playerPos.distanceTo(new THREE.Vector3(coord.x, 0, coord.z));
+        if (d < minDist) {
+          minDist = d;
+          nearestIslandIdx = idx;
+        }
+      });
+
+      if (nearestIslandIdx === 0) {
+        document.getElementById('hud-zone-tag').innerText = '🏛️ Central Hub';
+        document.getElementById('hud-quest-text').innerText = 'Choose an Island or cross the bridge!';
+        document.getElementById('hud-quest-sub').innerText = '(Przejdź mostem na wybraną wyspę lub kliknij Mapę!)';
+        document.getElementById('pill-letters').innerText = '🔤 Wybierz wyspę';
+        document.getElementById('pill-gate').innerText = '🚪 3 bramy do odkrycia';
+        document.getElementById('pill-npc').innerText = '🦉 3 strażników czeka';
+      } else {
+        const zone = State.selectedZones[nearestIslandIdx - 1];
+        if (zone) {
+          document.getElementById('hud-zone-tag').innerText = `${zone.icon} ${zone.nameEn}`;
+          document.getElementById('hud-quest-text').innerText = `Target: Collect [${zone.collectorWord}] & talk to ${zone.npcName}!`;
+          document.getElementById('hud-quest-sub').innerText = `(${zone.storyIntro})`;
+
+          const colSet = State.collectedLettersByZone[zone.id] || new Set();
+          const isGateDone = !!State.gateSolvedByZone[zone.id];
+          const isNpcDone = !!State.npcSolvedByZone[zone.id];
+
+          const pLetters = document.getElementById('pill-letters');
+          pLetters.innerText = `🔤 Litery: ${colSet.size}/${zone.collectorItems.length}`;
+          pLetters.className = 'tracker-pill' + (colSet.size >= zone.collectorItems.length ? ' done' : '');
+
+          const pGate = document.getElementById('pill-gate');
+          pGate.innerText = `🚪 Brama: ${isGateDone ? 'Zaliczona ✓' : 'Do przejścia'}`;
+          pGate.className = 'tracker-pill' + (isGateDone ? ' done' : '');
+
+          const pNpc = document.getElementById('pill-npc');
+          pNpc.innerText = `🦉 Zagadka: ${isNpcDone ? 'Rozwiązana ✓' : 'Czeka'}`;
+          pNpc.className = 'tracker-pill' + (isNpcDone ? ' done' : '');
+        }
+      }
+    }
+
+    /* ==========================================================================
+       10. MODALS & AVATAR SHOP
+       ========================================================================== */
+    window.openModal = function(id) {
+      SoundFx.coin();
+      const el = document.getElementById(id + '-modal');
+      if (el) el.style.display = 'flex';
+      if (id === 'shop') renderShop();
+      if (id === 'vocab') renderVocab();
+    };
+
+    window.closeModal = function(id) {
+      const el = document.getElementById(id + '-modal');
+      if (el) el.style.display = 'none';
+    };
+
+    function renderShop() {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+
+      SHOP_ITEMS.forEach(item => {
+        const isOwned = ownedItems.has(item.id);
+        const isEquipped = (item.type === 'shirt' && State.avatar.shirtColor === item.color) ||
+                           (item.type === 'hat' && State.avatar.hat === item.val) ||
+                           (item.type === 'wings' && State.avatar.wings === item.val);
+
+        const card = document.createElement('div');
+        card.className = `shop-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}`;
+        card.innerHTML = `
+          <div style="font-size: 32px; margin-bottom: 4px;">${item.icon}</div>
+          <div style="font-size: 13px; font-weight: 700;">${item.name}</div>
+          <div style="font-size: 12px; color: #d97706; font-weight: 800; margin-top: 4px;">
+            ${isOwned ? (isEquipped ? '✓ Założone' : 'Załóż') : `🪙 ${item.price}`}
+          </div>
+        `;
+        card.onclick = () => {
+          if (isOwned) {
+            if (item.type === 'shirt') State.avatar.shirtColor = item.color;
+            if (item.type === 'hat') State.avatar.hat = item.val;
+            if (item.type === 'wings') State.avatar.wings = item.val;
+            rebuildPlayerAvatar();
+            renderShop();
+            SoundFx.chime();
+          } else {
+            if (State.coins >= item.price) {
+              State.coins -= item.price;
+              ownedItems.add(item.id);
+              if (item.type === 'shirt') State.avatar.shirtColor = item.color;
+              if (item.type === 'hat') State.avatar.hat = item.val;
+              if (item.type === 'wings') State.avatar.wings = item.val;
+              rebuildPlayerAvatar();
+              updateHUD();
+              renderShop();
+              SoundFx.chime();
+              confetti({ particleCount: 50, origin: { y: 0.6 } });
+            } else {
+              SoundFx.oops();
+              showNotification('Za mało monet! Zbierz litery lub rozwiąż zagadkę.');
+            }
+          }
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function rebuildPlayerAvatar() {
+      if (playerMesh) scene.remove(playerMesh);
+      playerMesh = createPlayerMesh();
+      scene.add(playerMesh);
+    }
+
+    function renderVocab() {
+      const container = document.getElementById('vocab-list');
+      container.innerHTML = '';
+      VOCABULARY_LIST.forEach(item => {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;';
+        row.innerHTML = `
+          <div>
+            <span style="font-size: 16px; font-weight: 700; color: #0f172a;">${item.en}</span>
+            <span style="font-size: 13px; color: #64748b; margin-left: 8px;">(${item.pl})</span>
+          </div>
+          <button class="speak-btn" onclick="TTS.speak('${item.en}')">🔊</button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    window.toggleAudio = function() {
+      SoundFx.enabled = !SoundFx.enabled;
+      document.getElementById('sound-btn-icon').innerText = SoundFx.enabled ? '🔊' : '🔇';
+    };
+
+    /* ==========================================================================
+       11. INITIALIZATION ON DOM READY
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      playerMesh = createPlayerMesh();
+      scene.add(playerMesh);
+
+      // Start initial game state with 3 randomly selected islands
+      generateNewRandomGame();
+
+      // Begin 3D render loop
+      requestAnimationFrame(updateGame);
+    });
+  </script>
+</body>
+</html>

@@ -618,6 +618,7 @@ export function createPlayerMesh(config: AvatarConfig): THREE.Group {
   const contactShadow = new THREE.Mesh(shadowGeo, shadowMat);
   contactShadow.rotation.x = -Math.PI / 2;
   contactShadow.position.y = 0.02;
+  contactShadow.name = 'player_shadow';
   player.add(contactShadow);
 
   return player;
