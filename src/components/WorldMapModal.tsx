@@ -1,171 +1,201 @@
 import React from 'react';
-import { NPCS_DATA } from '../data/curriculum';
-import { MapPin, X, Compass, Sparkles } from 'lucide-react';
-import { SoundEffects } from '../services/audio';
+import { X, Lock, Check, MapPin, Sparkles, Navigation, Shuffle, Coins } from 'lucide-react';
+import { IslandConfig, IslandId, DifficultyLevel, PlayerProfile } from '../types/game';
+import { ISLANDS_DATA } from '../data/curriculum';
+import { SoundFx } from '../services/audio';
 
 interface WorldMapModalProps {
-  playerPos: { x: number; z: number };
-  unlockedAreas: string[];
+  profile: PlayerProfile;
+  activeIslands: IslandConfig[];
+  currentIslandId: IslandId;
+  onSelectIsland: (id: IslandId | 'hub') => void;
+  onUnlockIsland: (id: IslandId, cost: number) => void;
+  onChangeDifficulty: (lvl: DifficultyLevel) => void;
+  onNewRandomGame: () => void;
   onClose: () => void;
 }
 
 export const WorldMapModal: React.FC<WorldMapModalProps> = ({
-  playerPos,
-  unlockedAreas,
+  profile,
+  activeIslands,
+  currentIslandId,
+  onSelectIsland,
+  onUnlockIsland,
+  onChangeDifficulty,
+  onNewRandomGame,
   onClose
 }) => {
-  // Convert world coordinates (-50..50) into SVG map percentages (10%..90%)
-  const worldToMap = (x: number, z: number) => {
-    const left = ((x + 35) / 70) * 100;
-    const top = ((z + 35) / 70) * 100;
-    return {
-      left: `${Math.max(8, Math.min(92, left))}%`,
-      top: `${Math.max(8, Math.min(92, top))}%`
-    };
+  const activeIds = activeIslands.map(i => i.id);
+
+  const handleTeleport = (id: IslandId | 'hub') => {
+    SoundFx.playClick();
+    onSelectIsland(id);
+    onClose();
   };
 
-  const pMap = worldToMap(playerPos.x, playerPos.z);
+  const handleUnlock = (isl: IslandConfig) => {
+    if (profile.coins >= isl.unlockCostCoins) {
+      SoundFx.playSuccess();
+      onUnlockIsland(isl.id, isl.unlockCostCoins);
+    } else {
+      SoundFx.playFail();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-fredoka overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-amber-50 rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-amber-400 text-slate-800 my-auto">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b-2 border-amber-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md select-none overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="relative w-full max-w-4xl bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl p-5 md:p-7 text-white space-y-6 my-auto">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl shadow-md">
-              <Compass className="w-7 h-7" />
-            </div>
+            <span className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-2xl">
+              <Navigation className="w-6 h-6" />
+            </span>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-amber-950">
-                Mapa Krainy Wordland
-              </h2>
-              <p className="text-xs text-amber-800 font-medium">
-                Poznawaj krainy, odnajduj mieszkańców i rozwiązuj tajemnice Burzy Słów
-              </p>
+              <h2 className="text-xl md:text-2xl font-black text-emerald-400">Mapa Ruchomych Wysp (Worldland)</h2>
+              <p className="text-xs md:text-sm text-slate-400">Wybierz wyspę do eksploracji lub odblokuj nową krainę</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-950 transition-colors"
+            aria-label="Zamknij (Esc)"
+            className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Parchment Styled Map Canvas */}
-        <div className="relative w-full aspect-[4/3] max-h-[460px] bg-gradient-to-br from-emerald-100 via-amber-100 to-sky-100 rounded-2xl border-4 border-amber-300 shadow-inner overflow-hidden">
-          
-          {/* Stylized Regions */}
-          {/* River */}
-          <div className="absolute top-[68%] left-0 right-0 h-10 bg-sky-300/80 border-y-2 border-sky-400 -rotate-1 flex items-center justify-center text-[10px] font-bold text-sky-800 tracking-widest">
-            RZEKA SŁÓW (WORD RIVER)
+        {/* Difficulty Selector Bar */}
+        <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase text-amber-400">Poziom Trudności:</span>
+            <div className="flex items-center gap-1.5">
+              {(['easy', 'medium', 'hard'] as DifficultyLevel[]).map(lvl => {
+                const label = lvl === 'easy' ? 'Łatwy' : lvl === 'medium' ? 'Średni' : 'Trudny';
+                const isSelected = profile.difficulty === lvl;
+                return (
+                  <button
+                    key={lvl}
+                    onClick={() => {
+                      SoundFx.playClick();
+                      onChangeDifficulty(lvl);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-emerald-600 text-white shadow-md' 
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Wooden Bridge */}
-          <div className="absolute top-[65%] left-[45%] w-10 h-16 bg-amber-700 rounded border-2 border-amber-900 z-10 flex items-center justify-center text-[9px] font-bold text-white -rotate-1 shadow">
-            MOST
-          </div>
+          {/* New Random Game Shuffle Button */}
+          <button
+            onClick={() => {
+              SoundFx.playClick();
+              onNewRandomGame();
+              onClose();
+            }}
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-xs font-black text-white shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            <Shuffle className="w-4 h-4" />
+            <span>Nowe Losowanie 3 Wysp</span>
+          </button>
+        </div>
 
-          {/* Region 1: Wordland Town */}
-          <div className="absolute top-[28%] left-[30%] p-3 rounded-2xl bg-white/70 border-2 border-amber-400 text-center shadow-sm">
-            <span className="text-xl">🏛️</span>
-            <div className="text-xs font-bold text-slate-800">Wordland Town</div>
-            <div className="text-[10px] text-slate-500 font-medium">Rynek i Fontanna</div>
+        {/* Central Hub Button */}
+        <div className="p-3.5 bg-slate-950/70 rounded-2xl border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-sky-400">
+              🏛️
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm md:text-base text-white">Rynek Główny Wordland (PCD Polska Hub)</h4>
+              <p className="text-xs text-slate-400">Kultowy Fiat 126p Maluch, przystanek PKS i tablice do Szczecina</p>
+            </div>
           </div>
+          <button
+            onClick={() => handleTeleport('hub')}
+            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-xl text-xs font-extrabold text-white transition-all active:scale-95 cursor-pointer shadow-md"
+          >
+            Teleportuj do Hubu
+          </button>
+        </div>
 
-          {/* Region 2: Grand Library */}
-          <div className="absolute top-[20%] left-[10%] p-2.5 rounded-2xl bg-purple-100/80 border-2 border-purple-400 text-center shadow-sm">
-            <span className="text-xl">📚</span>
-            <div className="text-[11px] font-bold text-purple-900">Biblioteka</div>
-            <div className="text-[9px] text-purple-700">Prof. Owl</div>
-          </div>
+        {/* 7 Islands Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[380px] overflow-y-auto pr-1">
+          {ISLANDS_DATA.map(isl => {
+            const isUnlocked = profile.unlockedIslands.includes(isl.id);
+            const isActive = activeIds.includes(isl.id);
+            const isCurrent = currentIslandId === isl.id;
 
-          {/* Region 3: Sunny Bakery */}
-          <div className="absolute top-[16%] right-[16%] p-2.5 rounded-2xl bg-rose-100/80 border-2 border-rose-400 text-center shadow-sm">
-            <span className="text-xl">🥐</span>
-            <div className="text-[11px] font-bold text-rose-900">Piekarnia</div>
-            <div className="text-[9px] text-rose-700">Chef Pierre</div>
-          </div>
-
-          {/* Region 4: Market Island */}
-          <div className="absolute top-[48%] right-[10%] p-2.5 rounded-2xl bg-orange-100/80 border-2 border-orange-400 text-center shadow-sm">
-            <span className="text-xl">🏪</span>
-            <div className="text-[11px] font-bold text-orange-900">Ryneczek</div>
-            <div className="text-[9px] text-orange-700">Foxy Market</div>
-          </div>
-
-          {/* Region 5: Adventure Station */}
-          <div className="absolute bottom-[8%] left-[38%] p-2.5 rounded-2xl bg-teal-100/80 border-2 border-teal-400 text-center shadow-sm">
-            <span className="text-xl">🚂</span>
-            <div className="text-[11px] font-bold text-teal-900">Stacja Kolejowa</div>
-            <div className="text-[9px] text-teal-700">Zawiadowca Leo</div>
-          </div>
-
-          {/* Region 6: Mystery Zone Portal */}
-          <div className="absolute top-[5%] left-[45%] p-2 rounded-2xl bg-indigo-200/80 border-2 border-indigo-500 text-center shadow-sm">
-            <span className="text-lg">🔮</span>
-            <div className="text-[10px] font-bold text-indigo-950">Mystery Portal</div>
-          </div>
-
-          {/* NPC Markers */}
-          {NPCS_DATA.map(npc => {
-            const pos = worldToMap(npc.position.x, npc.position.z);
             return (
               <div
-                key={npc.id}
-                style={{ left: pos.left, top: pos.top }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer"
-                title={`${npc.name} (${npc.rolePl})`}
+                key={isl.id}
+                className={`p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 transition-all ${
+                  isActive
+                    ? 'bg-slate-800/90 border-emerald-500/80 shadow-lg shadow-emerald-500/10'
+                    : isUnlocked
+                      ? 'bg-slate-900/60 border-slate-700 opacity-80'
+                      : 'bg-slate-950/80 border-slate-800 opacity-60'
+                }`}
               >
-                <div 
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center text-sm transition-transform group-hover:scale-125"
-                  style={{ backgroundColor: npc.color }}
-                >
-                  {npc.icon}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span 
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-950"
+                      style={{ backgroundColor: isl.themeColor }}
+                    >
+                      {isActive ? 'Aktywna w grze' : isUnlocked ? 'W zasobach' : 'Zablokowana'}
+                    </span>
+                    {isCurrent && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                        <MapPin className="w-3.5 h-3.5" /> Tu jesteś
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="font-black text-base text-white">{isl.namePl}</h3>
+                  <p className="text-xs text-amber-300 font-bold">{isl.nameEn}</p>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{isl.descriptionPl}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Słów w puli: {isl.words.length} • Pora: {isl.timeOfDay}</p>
                 </div>
-                <div className="hidden group-hover:block absolute bottom-full mb-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-bold whitespace-nowrap shadow-md z-30">
-                  {npc.name}
+
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between">
+                  {isUnlocked ? (
+                    isActive ? (
+                      <button
+                        onClick={() => handleTeleport(isl.id)}
+                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 rounded-xl text-xs font-black text-white shadow-md transition-all cursor-pointer"
+                      >
+                        Przejdź na wyspę
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Wylosuj w następnej grze</span>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => handleUnlock(isl)}
+                      className="w-full py-2 bg-amber-600 hover:bg-amber-500 active:scale-95 rounded-xl text-xs font-black text-white flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Odblokuj za {isl.unlockCostCoins}</span>
+                      <Coins className="w-3.5 h-3.5 text-amber-300" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
-
-          {/* Current Player Cursor Marker */}
-          <div 
-            style={{ left: pMap.left, top: pMap.top }}
-            className="absolute -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none"
-          >
-            <div className="relative flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-blue-500/30 border-2 border-blue-600 animate-ping absolute" />
-              <div className="w-7 h-7 rounded-full bg-blue-600 border-2 border-white shadow-lg flex items-center justify-center text-white text-xs font-bold">
-                Ty
-              </div>
-            </div>
-          </div>
-
         </div>
-
-        {/* Legend */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 font-bold bg-amber-100/80 p-3 rounded-2xl border border-amber-200">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-blue-600 border border-white" />
-            <span>Twoja pozycja</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🧭</span>
-            <span>Mieszkańcy i Zadania</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">💎</span>
-            <span>Kryształy Słów do zebrania</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🔮</span>
-            <span>Tajemnicza Strefa</span>
-          </div>
-        </div>
-
       </div>
     </div>
   );

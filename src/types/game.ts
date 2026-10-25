@@ -1,123 +1,34 @@
-export type GradeLevel = 'grade3' | 'grade4';
+export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
-export type QuestType = 
-  | 'follow_instructions' 
-  | 'find_item' 
-  | 'dialogue' 
-  | 'shopping' 
-  | 'sentence_builder' 
-  | 'riddle' 
-  | 'pronunciation_listen';
-
-export type QuestCategory =
-  | 'greetings'
-  | 'colors_numbers'
-  | 'school_supplies'
-  | 'animals_nature'
-  | 'food_drinks'
-  | 'clothes_weather'
-  | 'family_friends'
-  | 'city_transport'
-  | 'daily_routine'
-  | 'sports_hobbies';
+export type IslandId = 
+  | 'zoo' 
+  | 'kitchen' 
+  | 'school' 
+  | 'house' 
+  | 'colors_numbers' 
+  | 'body_clothes' 
+  | 'weather_seasons';
 
 export interface WordItem {
   id: string;
   english: string;
   polish: string;
-  category: QuestCategory;
+  category: IslandId;
+  level: 1 | 2 | 3;
+  distractors: string[];
   emoji: string;
-  exampleEn: string;
-  examplePl: string;
-  phoneticTip?: string;
-  discovered: boolean;
-}
-
-export interface QuestReward {
-  xp: number;
-  stars: number;
-  coins: number;
-  wordsToUnlock: string[]; // word IDs
-  badgeId?: string;
-}
-
-export interface DialogueOption {
-  textEn: string;
-  textPl: string;
-  isCorrect: boolean;
-  feedbackEn?: string;
-  feedbackPl?: string;
-}
-
-export interface QuestVariant {
-  id: string;
-  titlePl: string;
-  titleEn: string;
-  category: QuestCategory;
-  gradeLevel: GradeLevel;
-  npcId: string;
-  targetLocation: { x: number; z: number; namePl: string; nameEn: string };
-  questType: QuestType;
-  storyContextPl: string;
-  instructionEn: string;
-  instructionPl: string;
-  audioPhraseEn: string;
-  
-  // Specific data depending on quest type
-  options?: DialogueOption[];
-  sentenceWords?: string[]; // for sentence_builder
-  correctSentence?: string;
-  shopItems?: { nameEn: string; namePl: string; price: number; icon: string; isCorrect: boolean }[];
-  targetItemsToFind?: { id: string; nameEn: string; namePl: string; x: number; z: number; icon: string }[];
-  riddleClues?: string[];
-  
   hintPl: string;
-  reward: QuestReward;
+  exampleEn?: string;
+  examplePl?: string;
+  phoneticTip?: string;
 }
 
-export interface AvatarConfig {
-  skinColor: string;
-  hairStyle: 'short' | 'spiky' | 'curly' | 'ponytail' | 'cap';
-  hairColor: string;
-  outfitColor: string;
-  pantsColor: string;
-  accessory: 'none' | 'glasses' | 'explorer_hat' | 'headphones' | 'badge';
-  backpackColor: string;
-}
-
-export interface PlayerProfile {
-  version: number;
-  id: string;
-  playerName: string;
-  gradeLevel: GradeLevel;
-  avatar: AvatarConfig;
-  createdAt: number;
-  lastPlayedAt: number;
-  totalPlayTimeSeconds: number;
-  
-  xp: number;
-  stars: number;
-  coins: number;
-  level: number;
-  
-  unlockedAreas: string[];
-  completedQuestIds: string[];
-  recentQuestIds: string[]; // history buffer to prevent repetition
-  dailyChallengeCompleted: boolean;
-  dailyChallengeDate: string;
-  
-  discoveredWordIds: string[];
-  inventory: { id: string; nameEn: string; namePl: string; count: number; icon: string }[];
-  badges: string[];
-  
-  playerPosition: { x: number; y: number; z: number; rotationY: number };
-  settings: {
-    speechRate: number; // 0.8 for slow, 1.0 for normal
-    soundEnabled: boolean;
-    ttsVoice: 'en-US' | 'en-GB';
-    showPolishHints: boolean;
-    touchControls: boolean;
-  };
+export interface LeitnerCard {
+  wordId: string;
+  box: 1 | 2 | 3; // 1 = daily/difficult, 2 = review, 3 = mastered
+  nextReviewDate: string;
+  timesReviewed: number;
+  timesWrong: number;
 }
 
 export interface NPCData {
@@ -128,18 +39,99 @@ export interface NPCData {
   dialogueIntroEn: string;
   dialogueIntroPl: string;
   color: string;
-  icon: string;
+  islandId: IslandId | 'hub';
   position: { x: number; y: number; z: number };
 }
 
-export interface WorldCollectible {
+export interface IslandConfig {
+  id: IslandId;
+  nameEn: string;
+  namePl: string;
+  descriptionPl: string;
+  themeColor: string;
+  skyColor: string;
+  fogColor: string;
+  groundColor: string;
+  accentColor: string;
+  timeOfDay: 'morning' | 'noon' | 'sunset' | 'night' | 'dawn';
+  unlockedByDefault: boolean;
+  unlockCostCoins: number;
+  words: WordItem[];
+  npc: NPCData;
+  gateCategories: { id: string; nameEn: string; namePl: string; isCorrect: boolean }[];
+}
+
+export type MiniGameType = 
+  | 'collector' 
+  | 'sorting_gates' 
+  | 'npc_riddle' 
+  | 'word_scramble' 
+  | 'listen_and_choose' 
+  | 'word_match' 
+  | 'speech_challenge';
+
+export interface ActiveQuest {
   id: string;
-  wordId: string;
-  wordEn: string;
-  wordPl: string;
-  category: QuestCategory;
-  x: number;
-  y: number;
-  z: number;
-  collected: boolean;
+  islandId: IslandId;
+  targetWord: WordItem;
+  gameType: MiniGameType;
+  titlePl: string;
+  titleEn: string;
+  instructionPl: string;
+  instructionEn: string;
+  requiredCount: number;
+  currentCount: number;
+  completed: boolean;
+  rewardCoins: number;
+  rewardScore: number;
+}
+
+export interface BadgeItem {
+  id: string;
+  namePl: string;
+  descriptionPl: string;
+  iconName: string; // lucide icon identifier
+  unlockedAt?: number;
+}
+
+export interface ShopItem {
+  id: string;
+  namePl: string;
+  category: 'hat' | 'wings' | 'trail' | 'island';
+  cost: number;
+  color?: string;
+  descriptionPl: string;
+  islandId?: IslandId;
+}
+
+export interface SettingsState {
+  sfxVolume: number; // 0.0 - 1.0
+  ttsSlow: boolean;
+  showPolishSubtitles: boolean;
+  highContrast: boolean;
+  enableSpeechRec: boolean;
+}
+
+export interface PlayerProfile {
+  version: number;
+  coins: number;
+  score: number;
+  difficulty: DifficultyLevel;
+  activeIslandId: IslandId;
+  equippedHat: string;
+  equippedWings: string;
+  equippedTrail: string;
+  unlockedIslands: IslandId[];
+  ownedItems: string[];
+  discoveredWordIds: string[];
+  difficultWordIds: string[];
+  leitnerCards: Record<string, LeitnerCard>;
+  badges: string[];
+  streakDays: number;
+  lastLoginDate: string;
+  dailyQuestDone: boolean;
+  streakRecord: number;
+  consecutiveCorrect: number;
+  totalQuestsCompleted: number;
+  settings: SettingsState;
 }

@@ -1,169 +1,226 @@
-import { PlayerProfile, QuestVariant, GradeLevel } from '../types/game';
-import { QUESTS_DATABASE, DAILY_CHALLENGES } from '../data/curriculum';
+import { PlayerProfile, DifficultyLevel, IslandId, LeitnerCard, WordItem } from '../types/game';
+import { ISLANDS_DATA, BADGES_DATA } from '../data/curriculum';
 
-const SAVE_KEY = 'english_quest_wordland_save_v1';
+const SAVE_STORAGE_KEY = 'word_quest_shifting_islands_save_v3';
 
-export const DEFAULT_AVATAR = {
-  skinColor: '#fcd34d',
-  hairStyle: 'spiky' as const,
-  hairColor: '#b45309',
-  outfitColor: '#3b82f6',
-  pantsColor: '#1e3a8a',
-  accessory: 'explorer_hat' as const,
-  backpackColor: '#10b981'
+export const DEFAULT_PROFILE: PlayerProfile = {
+  version: 3,
+  coins: 10,
+  score: 0,
+  difficulty: 'easy',
+  activeIslandId: 'zoo',
+  equippedHat: 'none',
+  equippedWings: 'none',
+  equippedTrail: 'none',
+  unlockedIslands: ['zoo', 'kitchen', 'school', 'house', 'colors_numbers'],
+  ownedItems: ['hat_cap'],
+  discoveredWordIds: [],
+  difficultWordIds: [],
+  leitnerCards: {},
+  badges: [],
+  streakDays: 1,
+  lastLoginDate: new Date().toISOString().slice(0, 10),
+  dailyQuestDone: false,
+  streakRecord: 1,
+  consecutiveCorrect: 0,
+  totalQuestsCompleted: 0,
+  settings: {
+    sfxVolume: 0.8,
+    ttsSlow: false,
+    showPolishSubtitles: true,
+    highContrast: false,
+    enableSpeechRec: true
+  }
 };
 
-export function createNewProfile(name: string, gradeLevel: GradeLevel): PlayerProfile {
-  const todayStr = new Date().toISOString().split('T')[0];
-  return {
-    version: 1,
-    id: 'player_' + Math.random().toString(36).substring(2, 9),
-    playerName: name.trim() || 'Odkrywca',
-    gradeLevel,
-    avatar: { ...DEFAULT_AVATAR },
-    createdAt: Date.now(),
-    lastPlayedAt: Date.now(),
-    totalPlayTimeSeconds: 0,
-    
-    xp: 0,
-    stars: 3,
-    coins: 20,
-    level: 1,
-    
-    unlockedAreas: ['wordland_town', 'magic_forest'],
-    completedQuestIds: [],
-    recentQuestIds: [],
-    dailyChallengeCompleted: false,
-    dailyChallengeDate: todayStr,
-    
-    discoveredWordIds: ['w_hello', 'w_blue', 'w_apple', 'w_pencil', 'w_fox'],
-    inventory: [
-      { id: 'inv_compass', nameEn: 'Explorer Compass', namePl: 'Kompas Odkrywcy', count: 1, icon: '🧭' },
-      { id: 'inv_apple', nameEn: 'Magic Apple', namePl: 'Magiczne Jabłko', count: 2, icon: '🍎' }
-    ],
-    badges: ['badge_first_step'],
-    
-    playerPosition: { x: 0, y: 0, z: 0, rotationY: 0 },
-    settings: {
-      speechRate: 0.9,
-      soundEnabled: true,
-      ttsVoice: 'en-GB',
-      showPolishHints: true,
-      touchControls: false
-    }
-  };
-}
-
-export function loadSavedProfile(): PlayerProfile | null {
-  if (typeof window === 'undefined') return null;
+/**
+ * Safely load saved profile from localStorage with fallback and version migration
+ */
+export function loadSavedProfile(): PlayerProfile {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PlayerProfile>;
-    
-    // Integrity check
-    if (!parsed.playerName || !parsed.avatar) {
-      console.warn('Corrupted save data, returning null');
-      return null;
+    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+    if (!raw) {
+      return initializeStreak({ ...DEFAULT_PROFILE });
     }
-    
-    // Ensure all required arrays and settings exist (version migration safety)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const profile: PlayerProfile = {
-      version: 1,
-      id: parsed.id || 'player_' + Date.now(),
-      playerName: parsed.playerName || 'Odkrywca',
-      gradeLevel: parsed.gradeLevel === 'grade4' ? 'grade4' : 'grade3',
-      avatar: { ...DEFAULT_AVATAR, ...(parsed.avatar || {}) },
-      createdAt: parsed.createdAt || Date.now(),
-      lastPlayedAt: Date.now(),
-      totalPlayTimeSeconds: parsed.totalPlayTimeSeconds || 0,
-      
-      xp: parsed.xp || 0,
-      stars: parsed.stars ?? 3,
-      coins: parsed.coins ?? 20,
-      level: Math.max(1, Math.floor((parsed.xp || 0) / 100) + 1),
-      
-      unlockedAreas: parsed.unlockedAreas && parsed.unlockedAreas.length > 0 ? parsed.unlockedAreas : ['wordland_town', 'magic_forest'],
-      completedQuestIds: parsed.completedQuestIds || [],
-      recentQuestIds: parsed.recentQuestIds || [],
-      dailyChallengeCompleted: parsed.dailyChallengeDate === todayStr ? !!parsed.dailyChallengeCompleted : false,
-      dailyChallengeDate: todayStr,
-      
-      discoveredWordIds: parsed.discoveredWordIds || ['w_hello', 'w_blue'],
-      inventory: parsed.inventory || [],
-      badges: parsed.badges || ['badge_first_step'],
-      
-      playerPosition: parsed.playerPosition || { x: 0, y: 0, z: 0, rotationY: 0 },
+    const parsed = JSON.parse(raw);
+    const merged: PlayerProfile = {
+      ...DEFAULT_PROFILE,
+      ...parsed,
       settings: {
-        speechRate: parsed.settings?.speechRate ?? 0.9,
-        soundEnabled: parsed.settings?.soundEnabled ?? true,
-        ttsVoice: parsed.settings?.ttsVoice || 'en-GB',
-        showPolishHints: parsed.settings?.showPolishHints ?? true,
-        touchControls: parsed.settings?.touchControls ?? false
-      }
+        ...DEFAULT_PROFILE.settings,
+        ...(parsed.settings || {})
+      },
+      unlockedIslands: Array.isArray(parsed.unlockedIslands) && parsed.unlockedIslands.length > 0 
+        ? parsed.unlockedIslands 
+        : DEFAULT_PROFILE.unlockedIslands,
+      leitnerCards: parsed.leitnerCards || {},
+      badges: parsed.badges || []
     };
-
-    return profile;
+    return initializeStreak(merged);
   } catch (err) {
-    console.error('Failed to load profile:', err);
-    return null;
-  }
-}
-
-export function saveProfile(profile: PlayerProfile): void {
-  if (typeof window === 'undefined') return;
-  try {
-    profile.lastPlayedAt = Date.now();
-    profile.level = Math.max(1, Math.floor(profile.xp / 100) + 1);
-    localStorage.setItem(SAVE_KEY, JSON.stringify(profile));
-  } catch (err) {
-    console.error('Failed to save profile:', err);
-  }
-}
-
-export function clearProfile(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem(SAVE_KEY);
-  } catch (err) {
-    console.error('Failed to clear profile:', err);
+    console.warn('Failed to load profile from localStorage:', err);
+    return { ...DEFAULT_PROFILE };
   }
 }
 
 /**
- * Key requirement: Dynamic, non-repetitive quest selection.
- * Selects an appropriate quest based on:
- * - Current Grade level (Klasa 3 vs Klasa 4)
- * - Excludes recently played quests (last 5)
- * - Prefers uncompleted quests, but can draw from pool with refreshed seed
+ * Check and advance daily streak
  */
-export function getNextDynamicQuest(profile: PlayerProfile, targetNpcId?: string): QuestVariant {
-  const eligibleQuests = QUESTS_DATABASE.filter(q => {
-    if (q.gradeLevel !== profile.gradeLevel) return false;
-    if (targetNpcId && q.npcId !== targetNpcId) return false;
-    return true;
-  });
-
-  if (eligibleQuests.length === 0) {
-    // Fallback to any quest for this grade
-    return QUESTS_DATABASE.find(q => q.gradeLevel === profile.gradeLevel) || QUESTS_DATABASE[0];
+function initializeStreak(profile: PlayerProfile): PlayerProfile {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!profile.lastLoginDate) {
+    profile.lastLoginDate = today;
+    profile.streakDays = 1;
+    profile.streakRecord = Math.max(profile.streakRecord || 1, 1);
+    return profile;
   }
 
-  // Filter out recent quests to avoid repeats
-  const notRecent = eligibleQuests.filter(q => !profile.recentQuestIds.includes(q.id));
-  const pool = notRecent.length > 0 ? notRecent : eligibleQuests;
+  if (profile.lastLoginDate === today) {
+    // Same day, keep current streak
+    return profile;
+  }
 
-  // Prefer uncompleted quests first
-  const uncompleted = pool.filter(q => !profile.completedQuestIds.includes(q.id));
-  const finalCandidates = uncompleted.length > 0 ? uncompleted : pool;
+  const last = new Date(profile.lastLoginDate);
+  const now = new Date(today);
+  const diffTime = Math.abs(now.getTime() - last.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  // Pick random candidate
-  const randomIndex = Math.floor(Math.random() * finalCandidates.length);
-  return finalCandidates[randomIndex];
+  if (diffDays === 1) {
+    // Consecutive day login!
+    profile.streakDays = (profile.streakDays || 1) + 1;
+    profile.streakRecord = Math.max(profile.streakRecord || 1, profile.streakDays);
+    profile.dailyQuestDone = false;
+  } else if (diffDays > 1) {
+    // Missed a day
+    profile.streakDays = 1;
+    profile.dailyQuestDone = false;
+  }
+
+  profile.lastLoginDate = today;
+  return profile;
 }
 
-export function getTodayChallenge() {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  return DAILY_CHALLENGES[dayOfYear % DAILY_CHALLENGES.length];
+/**
+ * Safely save player profile
+ */
+export function saveProfile(profile: PlayerProfile): void {
+  try {
+    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(profile));
+  } catch (err) {
+    console.warn('Unable to persist profile to localStorage:', err);
+  }
+}
+
+/**
+ * Mark a word as difficult and insert or demote in Leitner system
+ */
+export function markWordDifficult(profile: PlayerProfile, wordId: string): PlayerProfile {
+  const difficultSet = new Set(profile.difficultWordIds);
+  difficultSet.add(wordId);
+
+  const existingCard = profile.leitnerCards[wordId] || {
+    wordId,
+    box: 1,
+    nextReviewDate: new Date().toISOString().slice(0, 10),
+    timesReviewed: 0,
+    timesWrong: 0
+  };
+
+  existingCard.box = 1; // back to box 1
+  existingCard.timesWrong += 1;
+  existingCard.timesReviewed += 1;
+
+  const updated: PlayerProfile = {
+    ...profile,
+    consecutiveCorrect: 0,
+    difficultWordIds: Array.from(difficultSet),
+    leitnerCards: {
+      ...profile.leitnerCards,
+      [wordId]: existingCard
+    }
+  };
+
+  saveProfile(updated);
+  return updated;
+}
+
+/**
+ * Promote word in Leitner spaced repetition system
+ */
+export function promoteLeitnerWord(profile: PlayerProfile, wordId: string): PlayerProfile {
+  const card = profile.leitnerCards[wordId] || {
+    wordId,
+    box: 1,
+    nextReviewDate: new Date().toISOString().slice(0, 10),
+    timesReviewed: 0,
+    timesWrong: 0
+  };
+
+  card.timesReviewed += 1;
+  if (card.box < 3) {
+    card.box = (card.box + 1) as 1 | 2 | 3;
+  }
+
+  // If reached box 3, remove from difficult words list
+  let difficultWordIds = profile.difficultWordIds;
+  if (card.box >= 3) {
+    difficultWordIds = difficultWordIds.filter(id => id !== wordId);
+  }
+
+  const updated: PlayerProfile = {
+    ...profile,
+    difficultWordIds,
+    leitnerCards: {
+      ...profile.leitnerCards,
+      [wordId]: card
+    }
+  };
+
+  saveProfile(updated);
+  return updated;
+}
+
+/**
+ * Check and award badges based on current game state
+ */
+export function checkBadges(profile: PlayerProfile): { updatedProfile: PlayerProfile; newBadge: string | null } {
+  const currentBadges = new Set(profile.badges);
+  let newlyUnlocked: string | null = null;
+
+  function award(badgeId: string) {
+    if (!currentBadges.has(badgeId)) {
+      currentBadges.add(badgeId);
+      newlyUnlocked = badgeId;
+    }
+  }
+
+  if (profile.totalQuestsCompleted >= 1) award('first_quest');
+  if (profile.discoveredWordIds.length >= 5) award('word_collector_5');
+  if (profile.consecutiveCorrect >= 10) award('perfect_10');
+  if (profile.unlockedIslands.length > 5) award('island_explorer');
+  if (profile.ownedItems.length >= 2) award('fashion_star');
+  if (profile.streakDays >= 3) award('streak_3');
+
+  if (newlyUnlocked) {
+    const updated = {
+      ...profile,
+      badges: Array.from(currentBadges)
+    };
+    saveProfile(updated);
+    return { updatedProfile: updated, newBadge: newlyUnlocked };
+  }
+
+  return { updatedProfile: profile, newBadge: null };
+}
+
+/**
+ * Reset all saved progress
+ */
+export function resetSavedProgress(): PlayerProfile {
+  try {
+    localStorage.removeItem(SAVE_STORAGE_KEY);
+  } catch (err) {
+    console.warn('Storage clear error:', err);
+  }
+  return { ...DEFAULT_PROFILE };
 }
