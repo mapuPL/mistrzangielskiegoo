@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>The Shifting Islands: Word Quest</title>
-  <meta name="description" content="Edukacyjna gra przygodowa 3D w stylu low-poly do nauki języka angielskiego dla klas 3–4. Dynamicznie losowane wyspy, bogata fabuła, mini-gry i interaktywna mapa." />
+  <meta name="description" content="Edukacyjna gra przygodowa 3D w stylu low-poly inspirowana Roblox / PCD Polska do nauki języka angielskiego dla klas 3–4. Dynamicznie losowane wyspy, realistyczna fizyka przepaści, mini-gry i interaktywna mapa." />
   <meta property="og:title" content="The Shifting Islands: Word Quest" />
   <meta property="og:description" content="Wyrusz na Ruchome Wyspy Wordland, pomagaj mieszkańcom, zbieraj litery i rozwiązuj zagadki po angielsku!" />
   <meta property="og:type" content="website" />
@@ -576,11 +576,11 @@
             <span>🏆</span> <span id="hud-score">0</span>
           </div>
           <div class="stat-pill" title="Coins">
-            <span>🪙</span> <span id="hud-coins">20</span>
+            <span>🪙</span> <span id="hud-coins">25</span>
           </div>
         </div>
 
-        <!-- ALWAYS VISIBLE EXIT BUTTON -->
+        <!-- ALWAYS VISIBLE EXIT / MAP BUTTON -->
         <button class="btn btn-menu interactive" onclick="window.showScreen('map')" title="Wróć do wyboru wysp">
           <span>🗺️</span> <span>Mapa Świata (ESC)</span>
         </button>
@@ -697,12 +697,12 @@
   <div class="modal-overlay" id="shop-modal">
     <div class="modal-box">
       <button class="modal-close" onclick="window.closeModal('shop')">✕</button>
-      <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">🛍️ Sklep Avatara</h2>
-      <p style="font-size: 13px; color: #64748b;">Dostosuj wygląd postaci, kupując nakrycia głowy i skrzydła!</p>
+      <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">🛍️ Sklep Avatara (Roblox Style)</h2>
+      <p style="font-size: 13px; color: #64748b;">Dostosuj strój, numery, czapki i aurę swojej postaci!</p>
 
       <div style="background: #f8fafc; border-radius: 16px; padding: 12px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
         <span style="font-weight: 700;">Twoje monety:</span>
-        <span style="font-size: 18px; font-weight: 800; color: #d97706;">🪙 <span id="shop-coins-counter">20</span></span>
+        <span style="font-size: 18px; font-weight: 800; color: #d97706;">🪙 <span id="shop-coins-counter">25</span></span>
       </div>
 
       <div class="shop-items-grid" id="shop-items-container">
@@ -717,20 +717,22 @@
       <button class="modal-close" onclick="window.closeModal('story')">✕</button>
       <h2 style="font-size: 24px; font-weight: 800; color: #0f172a;">📜 Fabuła: Tajemnica Burzy Słów</h2>
       <div class="story-card">
-        <p><strong>Cześć Odkrywco!</strong></p>
+        <p><strong>Cześć Odkrywco Wordland!</strong></p>
         <p style="margin-top: 6px;">
-          Pewnego dnia nad magiczną krainą <em>Wordland</em> przeszła tajemnicza <strong>Burza Słów (The Word Storm)</strong>. Wicher rozproszył wyspy wiedzy na dryfujące archipelagi i rozrzucił święte litery w świecie 3D!
+          Pewnego dnia nad krainą przeszła tajemnicza <strong>Burza Słów (The Word Storm)</strong>. Wicher rozproszył wyspy wiedzy na dryfujące w chmurach archipelagi i rozrzucił święte litery w świecie 3D!
         </p>
         <p style="margin-top: 6px;">
-          Twoje zadanie:
-          <br>1. <strong>Odwiedź 3 wylosowane wyspy</strong> za pomocą mostów lub portali.
+          <strong>Twoje zadanie:</strong>
+          <br>1. <strong>Odwiedź 3 wylosowane wyspy</strong> przez wiszące mosty lub portale.
           <br>2. <strong>Zbierz rozrzucone 3D litery</strong> każdego angielskiego słowa (np. L-I-O-N, A-P-P-L-E).
           <br>3. <strong>Wybierz właściwą Bramę Segregacji</strong> (Sorting Gate).
           <br>4. <strong>Rozwiąż zagadkę Strażnika</strong>, aby odzyskać Kryształ Słowa!
+          <br><br>
+          <em>Uwaga: Uważaj na krawędzie wysp! Jeśli spadniesz w przepaść, magiczny portal ocali Cię i przywróci na wyspę.</em>
         </p>
       </div>
       <button class="btn btn-primary" style="width: 100%; margin-top: 14px;" onclick="window.closeModal('story')">
-        Rozumiem! Wracam do misji!
+        Wyruszam do misji!
       </button>
     </div>
   </div>
@@ -836,6 +838,23 @@
           gain.connect(this.ctx.destination);
           osc.start();
           osc.stop(this.ctx.currentTime + 0.22);
+        } catch(e) {}
+      },
+      fallWhoosh() {
+        this.init();
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.7);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.75);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.8);
         } catch(e) {}
       },
       chime() {
@@ -1029,39 +1048,43 @@
     ];
 
     /* ==========================================================================
-       4. GAME STATE & AVATAR
+       4. GAME STATE & AVATAR (PCD POLSKA / ROBLOX INSPIRATION)
        ========================================================================== */
     const State = {
       score: 0,
-      coins: 25,
-      selectedZones: [], // 3 islands chosen for current session
+      coins: 30,
+      selectedZones: [],
       activeIslandIdx: 0,
-      collectedLettersByZone: {}, // zoneId -> Set of letters collected
-      gateSolvedByZone: {}, // zoneId -> boolean
-      npcSolvedByZone: {}, // zoneId -> boolean
+      collectedLettersByZone: {},
+      gateSolvedByZone: {},
+      npcSolvedByZone: {},
       badges: new Set(),
       avatar: {
-        shirtColor: '#3b82f6',
+        shirtColor: '#2563eb',
         pantsColor: '#1e3a8a',
-        hat: 'none',
-        wings: false
+        number: '19',
+        hat: 'spiky_hair', // default stylish Roblox hair
+        wings: false,
+        aura: true // iconic glowing blue aura from PCD Polska screenshot
       },
-      currentNearInteractable: null
+      currentNearInteractable: null,
+      isFallingInVoid: false
     };
 
     const SHOP_ITEMS = [
-      { id: 'shirt_green', type: 'shirt', name: 'Zielona Bluza', color: '#10b981', price: 0, icon: '👕' },
-      { id: 'shirt_red', type: 'shirt', name: 'Czerwona Bluza', color: '#ef4444', price: 5, icon: '👕' },
-      { id: 'shirt_gold', type: 'shirt', name: 'Złota Bluza', color: '#f59e0b', price: 10, icon: '👕' },
+      { id: 'shirt_barca', type: 'shirt', name: 'Koszulka #19 Barca', color: '#db2777', number: '19', price: 0, icon: '👕' },
+      { id: 'shirt_poland', type: 'shirt', name: 'Koszulka #10 Polska', color: '#dc2626', number: '10', price: 5, icon: '👕' },
+      { id: 'shirt_gold', type: 'shirt', name: 'Złota Bluza Pro', color: '#f59e0b', number: '7', price: 10, icon: '👕' },
+      { id: 'hat_spiky', type: 'hat', name: 'Fryzura Roblox', val: 'spiky_hair', price: 0, icon: '💇' },
       { id: 'hat_explorer', type: 'hat', name: 'Kapelusz Odkrywcy', val: 'explorer', price: 10, icon: '🤠' },
       { id: 'hat_crown', type: 'hat', name: 'Złota Korona', val: 'crown', price: 15, icon: '👑' },
       { id: 'hat_ears', type: 'hat', name: 'Uszy Kotka', val: 'ears', price: 10, icon: '🐱' },
       { id: 'wings_angel', type: 'wings', name: 'Skrzydła 3D', val: true, price: 25, icon: '🪽' }
     ];
-    let ownedItems = new Set(['shirt_green']);
+    let ownedItems = new Set(['shirt_barca', 'hat_spiky']);
 
     /* ==========================================================================
-       5. THREE.JS 3D WORLD WITH ENHANCED GRAPHICS & RIGID BODIES
+       5. THREE.JS 3D WORLD WITH PROCEDURAL TEXTURES & PCD POLSKA PROPS
        ========================================================================== */
     let scene, camera, renderer, clock;
     let playerMesh, playerPos = new THREE.Vector3(0, 0, 0), playerVelocity = new THREE.Vector3(0, 0, 0);
@@ -1081,11 +1104,33 @@
 
     // Defined Island Center Coordinates
     const ISLAND_COORDS = [
-      { x: 0, z: 0, name: 'Central Hub' },
-      { x: -32, z: -18, name: 'Island 1' },
-      { x: 32, z: -18, name: 'Island 2' },
-      { x: 0, z: 36, name: 'Island 3' }
+      { x: 0, z: 0, radius: 13.0, name: 'Central Hub' },
+      { x: -32, z: -18, radius: 14.0, name: 'Island 1' },
+      { x: 32, z: -18, radius: 14.0, name: 'Island 2' },
+      { x: 0, z: 36, radius: 14.0, name: 'Island 3' }
     ];
+
+    // Procedural Ground Textures (PCD Polska realistic gravel / asphalt)
+    function createGravelTexture(baseColor = '#64748b') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 600; i++) {
+        const x = Math.random() * 256;
+        const y = Math.random() * 256;
+        const r = 1 + Math.random() * 2.5;
+        ctx.fillStyle = Math.random() > 0.5 ? '#94a3b8' : '#475569';
+        ctx.fillRect(x, y, r, r);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(6, 6);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
 
     function initThree() {
       const container = document.getElementById('game-canvas-container');
@@ -1093,37 +1138,37 @@
 
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x38bdf8);
-      scene.fog = new THREE.Fog(0x38bdf8, 35, 95);
+      scene.fog = new THREE.Fog(0x38bdf8, 40, 110);
 
-      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       container.appendChild(renderer.domElement);
 
-      // Studio 3-Point Lighting
-      const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x0284c7, 0.7);
+      // Studio Lighting
+      const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x0284c7, 0.75);
       scene.add(hemiLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffedd5, 1.35);
-      dirLight.position.set(28, 45, 28);
+      const dirLight = new THREE.DirectionalLight(0xffedd5, 1.4);
+      dirLight.position.set(30, 48, 30);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 1024;
       dirLight.shadow.mapSize.height = 1024;
       dirLight.shadow.bias = -0.0005;
       dirLight.shadow.camera.near = 0.5;
-      dirLight.shadow.camera.far = 110;
-      const d = 45;
+      dirLight.shadow.camera.far = 120;
+      const d = 50;
       dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
       dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
       scene.add(dirLight);
 
-      // Fill light
-      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.35);
-      fillLight.position.set(-28, 20, -28);
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.4);
+      fillLight.position.set(-30, 20, -30);
       scene.add(fillLight);
 
       window.addEventListener('resize', onWindowResize);
@@ -1142,7 +1187,6 @@
         keys[e.code] = true;
         if (e.key === 'e' || e.key === 'E') triggerProximityInteract();
         if (e.key === 'Escape') {
-          // Toggle Map / Pause Screen
           const mapEl = document.getElementById('world-map-screen');
           if (mapEl.style.display === 'flex') {
             window.teleportToIsland(State.activeIslandIdx);
@@ -1234,52 +1278,93 @@
       }
     }
 
-    /* Create Player Mesh */
+    /* ==========================================================================
+       ROBLOX / PCD POLSKA AVATAR WITH GLOWING AURA & NUMBER PRINTED JERSEY
+       ========================================================================== */
     function createPlayerMesh() {
       const player = new THREE.Group();
 
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.6 });
-      const shirtMat = new THREE.MeshStandardMaterial({ color: State.avatar.shirtColor, roughness: 0.7 });
-      const pantsMat = new THREE.MeshStandardMaterial({ color: State.avatar.pantsColor, roughness: 0.8 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.5 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: State.avatar.pantsColor, roughness: 0.7 });
       const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+
+      // Jersey with printed number on back (like #19 in PCD screenshot!)
+      const jerseyCanvas = document.createElement('canvas');
+      jerseyCanvas.width = 128; jerseyCanvas.height = 128;
+      const jCtx = jerseyCanvas.getContext('2d');
+      jCtx.fillStyle = State.avatar.shirtColor;
+      jCtx.fillRect(0, 0, 128, 128);
+      // Stripe
+      jCtx.fillStyle = '#ec4899';
+      jCtx.fillRect(0, 0, 40, 128);
+      // Back Number & Name
+      jCtx.fillStyle = '#ffffff';
+      jCtx.font = 'bold 22px sans-serif';
+      jCtx.textAlign = 'center';
+      jCtx.fillText('QUEST', 64, 34);
+      jCtx.font = 'bold 56px sans-serif';
+      jCtx.fillText(State.avatar.number || '19', 64, 95);
+      const jerseyTex = new THREE.CanvasTexture(jerseyCanvas);
+      jerseyTex.colorSpace = THREE.SRGBColorSpace;
+
+      const shirtMat = new THREE.MeshStandardMaterial({ map: jerseyTex, roughness: 0.6 });
 
       // Torso
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.5), shirtMat);
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.92, 0.5), shirtMat);
       torso.position.y = 1.05;
       torso.castShadow = true;
       torso.name = 'player_torso';
       player.add(torso);
 
       // Head
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), skinMat);
-      head.position.y = 1.75;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.66, 0.66), skinMat);
+      head.position.y = 1.76;
       head.castShadow = true;
       head.name = 'player_head';
       player.add(head);
 
-      // Expressive Eyes
+      // Face (Smiling Eyes)
       [-0.15, 0.15].forEach(x => {
         const eye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), darkMat);
-        eye.position.set(x, 1.8, 0.33);
+        eye.position.set(x, 1.8, 0.34);
         player.add(eye);
       });
 
-      // Hat / Crown / Cat ears
-      if (State.avatar.hat === 'explorer') {
+      // Hair (PCD Polska / Roblox stylish spiky hair mesh)
+      if (State.avatar.hat === 'spiky_hair') {
+        const hairGroup = new THREE.Group();
+        const hairBaseMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+        const hairHighlightMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.7 });
+
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.28, 0.72), hairBaseMat);
+        cap.position.set(0, 2.06, 0);
+        hairGroup.add(cap);
+
+        // Angled Spikes (like in PCD Polska screenshot)
+        for (let i = -2; i <= 2; i++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.45, 4), hairHighlightMat);
+          spike.position.set(i * 0.13, 2.22, 0.08 - Math.abs(i) * 0.05);
+          spike.rotation.x = -0.35;
+          spike.rotation.z = -i * 0.18;
+          hairGroup.add(spike);
+        }
+        player.add(hairGroup);
+      } else if (State.avatar.hat === 'explorer') {
         const brim = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.08, 1.15), new THREE.MeshStandardMaterial({ color: 0xca8a04 }));
-        brim.position.y = 2.1;
+        brim.position.y = 2.12;
         player.add(brim);
         const top = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.38, 0.7), new THREE.MeshStandardMaterial({ color: 0xca8a04 }));
-        top.position.y = 2.3;
+        top.position.y = 2.32;
         player.add(top);
       } else if (State.avatar.hat === 'crown') {
         const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 0.32, 5), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.85 }));
-        crown.position.y = 2.22;
+        crown.position.y = 2.24;
         player.add(crown);
       } else if (State.avatar.hat === 'ears') {
         [-0.24, 0.24].forEach(x => {
           const ear = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 4), new THREE.MeshStandardMaterial({ color: 0xf472b6 }));
-          ear.position.set(x, 2.22, 0);
+          ear.position.set(x, 2.24, 0);
           player.add(ear);
         });
       }
@@ -1294,47 +1379,91 @@
         });
       }
 
-      // Arms
+      // Arms with White Hands (Roblox character aesthetic)
       const armLeftPivot = new THREE.Group();
-      armLeftPivot.position.set(-0.55, 1.35, 0);
+      armLeftPivot.position.set(-0.56, 1.35, 0);
       armLeftPivot.name = 'arm_left';
-      const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.7, 0.26), shirtMat);
-      armLeft.position.y = -0.3;
+      const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.54, 0.28), shirtMat);
+      armLeft.position.y = -0.22;
       armLeft.castShadow = true;
       armLeftPivot.add(armLeft);
+      const handLeft = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.26), whiteMat);
+      handLeft.position.y = -0.52;
+      armLeftPivot.add(handLeft);
       player.add(armLeftPivot);
 
       const armRightPivot = new THREE.Group();
-      armRightPivot.position.set(0.55, 1.35, 0);
+      armRightPivot.position.set(0.56, 1.35, 0);
       armRightPivot.name = 'arm_right';
-      const armRight = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.7, 0.26), shirtMat);
-      armRight.position.y = -0.3;
+      const armRight = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.54, 0.28), shirtMat);
+      armRight.position.y = -0.22;
       armRight.castShadow = true;
       armRightPivot.add(armRight);
+      const handRight = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.26), whiteMat);
+      handRight.position.y = -0.52;
+      armRightPivot.add(handRight);
       player.add(armRightPivot);
 
-      // Legs
+      // Legs with sneakers
       const legLeftPivot = new THREE.Group();
       legLeftPivot.position.set(-0.22, 0.65, 0);
       legLeftPivot.name = 'leg_left';
-      const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.65, 0.28), pantsMat);
-      legLeft.position.y = -0.3;
+      const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.52, 0.28), pantsMat);
+      legLeft.position.y = -0.22;
       legLeft.castShadow = true;
       legLeftPivot.add(legLeft);
+      const shoeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.16, 0.34), new THREE.MeshStandardMaterial({ color: 0xec4899 }));
+      shoeLeft.position.set(0, -0.48, 0.02);
+      legLeftPivot.add(shoeLeft);
       player.add(legLeftPivot);
 
       const legRightPivot = new THREE.Group();
       legRightPivot.position.set(0.22, 0.65, 0);
       legRightPivot.name = 'leg_right';
-      const legRight = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.65, 0.28), pantsMat);
-      legRight.position.y = -0.3;
+      const legRight = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.52, 0.28), pantsMat);
+      legRight.position.y = -0.22;
       legRight.castShadow = true;
       legRightPivot.add(legRight);
+      const shoeRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.16, 0.34), new THREE.MeshStandardMaterial({ color: 0xec4899 }));
+      shoeRight.position.set(0, -0.48, 0.02);
+      legRightPivot.add(shoeRight);
       player.add(legRightPivot);
 
-      // Contact shadow disk
+      // GLOWING BLUE ENERGY AURA SPHERE (From user's PCD Polska screenshot!)
+      if (State.avatar.aura) {
+        const auraGeo = new THREE.SphereGeometry(1.45, 20, 20);
+        const auraMat = new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.34,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+        const auraMesh = new THREE.Mesh(auraGeo, auraMat);
+        auraMesh.position.y = 1.25;
+        auraMesh.name = 'player_aura';
+        player.add(auraMesh);
+
+        // Floating sparkles inside aura
+        const sGeo = new THREE.BufferGeometry();
+        const sPos = new Float32Array(24 * 3);
+        for (let i = 0; i < 24; i++) {
+          const ang = (i / 24) * Math.PI * 2;
+          const rad = 0.85 + Math.random() * 0.45;
+          sPos[i * 3] = Math.cos(ang) * rad;
+          sPos[i * 3 + 1] = 0.4 + Math.random() * 1.5;
+          sPos[i * 3 + 2] = Math.sin(ang) * rad;
+        }
+        sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+        const sMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0.85 });
+        const sparkles = new THREE.Points(sGeo, sMat);
+        sparkles.name = 'player_sparkles';
+        player.add(sparkles);
+      }
+
+      // Contact shadow
       const shadow = new THREE.Mesh(
-        new THREE.CircleGeometry(0.52, 16),
+        new THREE.CircleGeometry(0.55, 16),
         new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false })
       );
       shadow.rotation.x = -Math.PI / 2;
@@ -1345,22 +1474,75 @@
       return player;
     }
 
-    /* Build Detailed Floating Islands with Rock Base & Floating Clouds */
+    /* ==========================================================================
+       6. ACCURATE GROUND / VOID DETECTION (FIXING WALKING ON AIR)
+       ========================================================================== */
+    function getGroundHeightAt(px, pz) {
+      // 1. Check Hub Island
+      if (Math.hypot(px, pz) <= 13.0) return 0;
+
+      // 2. Check 3 Shifting Themed Islands
+      for (let i = 0; i < 3; i++) {
+        const isl = ISLAND_COORDS[i + 1];
+        if (Math.hypot(px - isl.x, pz - isl.z) <= 14.0) return 0;
+      }
+
+      // 3. Check 3 Bridges connecting (0,0) to each island
+      for (let i = 0; i < 3; i++) {
+        const isl = ISLAND_COORDS[i + 1];
+        const lenSq = isl.x * isl.x + isl.z * isl.z;
+        const t = (px * isl.x + pz * isl.z) / lenSq;
+        if (t >= 0 && t <= 1) {
+          const projX = t * isl.x;
+          const projZ = t * isl.z;
+          const perpDist = Math.hypot(px - projX, pz - projZ);
+          if (perpDist <= 1.5) {
+            return 0; // Standing safely on the bridge!
+          }
+        }
+      }
+
+      // Off the islands and off the bridges -> FALLING INTO THE VOID / ABYSS!
+      return -999;
+    }
+
+    function respawnPlayer() {
+      SoundFx.fallWhoosh();
+      const target = ISLAND_COORDS[State.activeIslandIdx] || ISLAND_COORDS[0];
+      playerPos.set(target.x, 2.5, target.z);
+      playerVelocity.set(0, 0, 0);
+      isGrounded = false;
+      playerSquash.set(1.2, 0.8, 1.2);
+      showNotification('Ojej! Spadłeś w przepaść! Magiczny portal ocalił Cię!');
+      confetti({ particleCount: 50, origin: { y: 0.6 } });
+    }
+
+    /* ==========================================================================
+       7. BUILD 3D WORLD WITH POLISH ROBLOX (PCD POLSKA) PROPS
+       ========================================================================== */
     function buildWorld() {
       if (worldPropsGroup) scene.remove(worldPropsGroup);
       worldPropsGroup = new THREE.Group();
       interactables = [];
 
-      // 1. Central Hub Island
-      buildFloatingIsland(0, 0, 13, 0x10b981, 'Central Hub', worldPropsGroup);
+      // 1. Central Hub Island with Gravel Parking / Road Texture
+      buildFloatingIsland(0, 0, 13, '#64748b', 'Central Hub', worldPropsGroup);
 
-      // Central Return Portal on Hub
+      // Add Polish Bus Stop Shelter & Retro Polish "Maluch" Fiat 126p on Hub!
+      buildPolishBusStop(4, -4, worldPropsGroup);
+      buildMaluchCar(-4, -4, 0.4, 0x38bdf8, worldPropsGroup); // Sky Blue 126p like in screenshot!
+      buildWhiteSedan(-5, 4, -0.6, worldPropsGroup);
+      buildPolishRoadSigns(7, 3, worldPropsGroup);
+      buildGreenFlags(0, -9, worldPropsGroup);
+      buildThujaShrubs(worldPropsGroup);
+
+      // Central Portal
       buildIslandPortal(0, 0, 'Wróć do Wyboru Wysp (World Map)', worldPropsGroup, true);
 
       // 2. The 3 Selected Islands
       State.selectedZones.forEach((zone, idx) => {
         const coord = ISLAND_COORDS[idx + 1];
-        buildFloatingIsland(coord.x, coord.z, 14, zone.color, zone.nameEn, worldPropsGroup);
+        buildFloatingIsland(coord.x, coord.z, 14, zone.colorHex, zone.nameEn, worldPropsGroup);
 
         // Bridge to Hub
         buildBridge(new THREE.Vector3(0, 0, 0), new THREE.Vector3(coord.x, 0, coord.z), worldPropsGroup);
@@ -1381,33 +1563,213 @@
         buildSortingGates(zone, coord.x, coord.z, worldPropsGroup);
       });
 
-      // 3. Floating procedural clouds
+      // 3. Floating clouds
       buildClouds(worldPropsGroup);
 
       scene.add(worldPropsGroup);
     }
 
-    function buildFloatingIsland(x, z, radius, topColor, label, parent) {
+    function buildFloatingIsland(x, z, radius, topColorHex, label, parent) {
       const island = new THREE.Group();
       island.position.set(x, 0, z);
 
-      // Grassy top layer
-      const topGeo = new THREE.CylinderGeometry(radius, radius + 1, 3.0, 10);
-      const topMat = new THREE.MeshStandardMaterial({ color: topColor, roughness: 0.8 });
+      // Grassy/Paved top layer with texture
+      const tex = createGravelTexture(topColorHex);
+      const topGeo = new THREE.CylinderGeometry(radius, radius + 1, 3.0, 12);
+      const topMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
       const topMesh = new THREE.Mesh(topGeo, topMat);
       topMesh.position.y = -1.5;
       topMesh.receiveShadow = true;
       island.add(topMesh);
 
-      // Earthy rock underside (cone taper)
-      const rockGeo = new THREE.ConeGeometry(radius + 1.2, 7.5, 9);
-      const rockMat = new THREE.MeshStandardMaterial({ color: 0x57534e, roughness: 0.95 });
+      // Earthy rock underside
+      const rockGeo = new THREE.ConeGeometry(radius + 1.2, 8.5, 10);
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.95 });
       const rockMesh = new THREE.Mesh(rockGeo, rockMat);
       rockMesh.rotation.x = Math.PI;
-      rockMesh.position.y = -6.5;
+      rockMesh.position.y = -7.2;
       island.add(rockMesh);
 
       parent.add(island);
+    }
+
+    /* Polish Low-Poly "Maluch" Fiat 126p (Sky Blue, exactly as in user screenshot!) */
+    function buildMaluchCar(x, z, rotY, colorHex, parent) {
+      const car = new THREE.Group();
+      car.position.set(x, 0, z);
+      car.rotation.y = rotY;
+
+      const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8 });
+
+      // Lower Chassis
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 1.4), bodyMat);
+      chassis.position.y = 0.55;
+      chassis.castShadow = true;
+      car.add(chassis);
+
+      // Cabin / Slanted Roof (Iconic 126p shape)
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.65, 1.3), bodyMat);
+      cabin.position.set(-0.2, 1.15, 0);
+      cabin.castShadow = true;
+      car.add(cabin);
+
+      // Windshields
+      const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.55, 1.2), glassMat);
+      frontGlass.position.set(0.56, 1.15, 0);
+      car.add(frontGlass);
+
+      // Bumpers
+      const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 1.5), chromeMat);
+      frontBumper.position.set(1.25, 0.4, 0);
+      car.add(frontBumper);
+
+      // Headlights
+      [-0.45, 0.45].forEach(wz => {
+        const light = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 8), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+        light.rotation.z = Math.PI / 2;
+        light.position.set(1.22, 0.6, wz);
+        car.add(light);
+      });
+
+      // 4 Wheels
+      [[-0.7, -0.75], [0.7, -0.75], [-0.7, 0.75], [0.7, 0.75]].forEach(([wx, wz]) => {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.22, 10), wheelMat);
+        wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(wx, 0.28, wz);
+        wheel.castShadow = true;
+        car.add(wheel);
+      });
+
+      parent.add(car);
+    }
+
+    /* White Modern Sedan */
+    function buildWhiteSedan(x, z, rotY, parent) {
+      const car = new THREE.Group();
+      car.position.set(x, 0, z);
+      car.rotation.y = rotY;
+
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2 });
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.75, 1.6), whiteMat);
+      body.position.y = 0.6;
+      body.castShadow = true;
+      car.add(body);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 1.45), glassMat);
+      roof.position.set(-0.2, 1.25, 0);
+      car.add(roof);
+
+      [[-1.0, -0.85], [1.0, -0.85], [-1.0, 0.85], [1.0, 0.85]].forEach(([wx, wz]) => {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.25, 10), wheelMat);
+        wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(wx, 0.32, wz);
+        car.add(wheel);
+      });
+
+      parent.add(car);
+    }
+
+    /* Polish Wooden Bus Stop Shelter (Wiata przystankowa from PCD Polska) */
+    function buildPolishBusStop(x, z, parent) {
+      const shelter = new THREE.Group();
+      shelter.position.set(x, 0, z);
+
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.9 });
+      const benchMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+
+      // 4 Posts
+      [[-1.8, -1.0], [1.8, -1.0], [-1.8, 1.0], [1.8, 1.0]].forEach(([px, pz]) => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.8, 0.22), woodMat);
+        post.position.set(px, 1.4, pz);
+        post.castShadow = true;
+        shelter.add(post);
+      });
+
+      // Slanted Canopy Roof
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.15, 2.6), new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.7 }));
+      roof.position.set(0, 2.85, 0);
+      roof.rotation.x = 0.1;
+      roof.castShadow = true;
+      shelter.add(roof);
+
+      // Bench inside
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.45, 0.6), benchMat);
+      bench.position.set(0, 0.45, -0.4);
+      shelter.add(bench);
+
+      parent.add(shelter);
+    }
+
+    /* Polish Green Road Direction Signs (Tablice kierunkowe drogowskazy) */
+    function buildPolishRoadSigns(x, z, parent) {
+      const signGroup = new THREE.Group();
+      signGroup.position.set(x, 0, z);
+
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.5, 8), metalMat);
+      post.position.y = 1.75;
+      signGroup.add(post);
+
+      // Green sign board
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#15803d'; // Polish road sign green
+      ctx.fillRect(0, 0, 256, 128);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(6, 6, 244, 116);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SZCZECIN ➜', 128, 48);
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('WORDLAND ZOO', 128, 88);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+
+      const board = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 0.1), new THREE.MeshStandardMaterial({ map: tex }));
+      board.position.set(0, 2.6, 0);
+      signGroup.add(board);
+
+      parent.add(signGroup);
+    }
+
+    /* 3 Green Flags on tall silver poles (From PCD Polska screenshot top-left) */
+    function buildGreenFlags(x, z, parent) {
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.85 });
+      const flagMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.5 });
+
+      [-1.8, 0, 1.8].forEach(ox => {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 6, 8), poleMat);
+        pole.position.set(x + ox, 3.0, z);
+        parent.add(pole);
+
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 0.04), flagMat);
+        flag.position.set(x + ox + 0.7, 5.2, z);
+        parent.add(flag);
+      });
+    }
+
+    /* Thuja / Cypress shrubs (Conical green bushes from PCD screenshot) */
+    function buildThujaShrubs(parent) {
+      const thujaMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8 });
+      const shrubPositions = [
+        [-8, 6], [-8, 2], [-8, -2], [-8, -6],
+        [8, 6], [8, 2], [8, -2], [8, -6]
+      ];
+      shrubPositions.forEach(([sx, sz]) => {
+        const shrub = new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.4, 7), thujaMat);
+        shrub.position.set(sx, 1.2, sz);
+        shrub.castShadow = true;
+        parent.add(shrub);
+      });
     }
 
     function buildIslandPortal(x, z, label, parent, isHub = false) {
@@ -1424,10 +1786,9 @@
       topBar.position.y = 3.2;
       portal.add(topBar);
 
-      // Swirling portal aura
       const aura = new THREE.Mesh(
         new THREE.PlaneGeometry(2.2, 3.0),
-        new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
       );
       aura.position.y = 1.6;
       portal.add(aura);
@@ -1458,7 +1819,6 @@
       planks.receiveShadow = true;
       bridge.add(planks);
 
-      // Bridge rope side railings
       [-1.3, 1.3].forEach(rx => {
         const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, dist - 16), woodMat);
         rail.rotation.x = Math.PI / 2;
@@ -1473,11 +1833,11 @@
       cloudsGroup = new THREE.Group();
       const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, transparent: true, opacity: 0.85 });
 
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 9; i++) {
         const cloud = new THREE.Group();
-        const cx = (Math.random() - 0.5) * 120;
-        const cy = 10 + Math.random() * 15;
-        const cz = (Math.random() - 0.5) * 120;
+        const cx = (Math.random() - 0.5) * 140;
+        const cy = 12 + Math.random() * 16;
+        const cz = (Math.random() - 0.5) * 140;
         cloud.position.set(cx, cy, cz);
 
         for (let p = 0; p < 4; p++) {
@@ -1495,7 +1855,6 @@
       const foliageMat = new THREE.MeshStandardMaterial({ color: 0x15803d });
 
       if (zone.id === 'zoo') {
-        // Trees and 3D Low-Poly Lion Mascot
         const lionGroup = new THREE.Group();
         lionGroup.position.set(cx - 5, 0, cz - 4);
         const lionBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 2.2), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
@@ -1506,7 +1865,6 @@
         lionGroup.add(lionMane);
         parent.add(lionGroup);
 
-        // Palm tree
         const palm = new THREE.Group();
         palm.position.set(cx + 6, 0, cz - 4);
         const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 4, 6), woodMat);
@@ -1518,7 +1876,6 @@
         parent.add(palm);
 
       } else if (zone.id === 'kitchen') {
-        // Giant Donut & Bakery Stall
         const donut = new THREE.Mesh(
           new THREE.TorusGeometry(1.4, 0.65, 8, 16),
           new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 })
@@ -1527,13 +1884,11 @@
         donut.rotation.x = Math.PI / 3;
         parent.add(donut);
 
-        // Counter
         const counter = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 2.0), woodMat);
         counter.position.set(cx, 0.6, cz - 5);
         parent.add(counter);
 
       } else if (zone.id === 'school') {
-        // Bell Tower with Clock & Giant Pencil
         const tower = new THREE.Mesh(new THREE.BoxGeometry(3, 6, 3), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
         tower.position.set(cx, 3, cz - 6);
         parent.add(tower);
@@ -1543,14 +1898,12 @@
         clockFace.position.set(cx, 4.8, cz - 4.4);
         parent.add(clockFace);
 
-        // Giant Pencil prop
         const pencil = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
         pencil.position.set(cx + 6, 1.8, cz - 3);
         pencil.rotation.z = 0.25;
         parent.add(pencil);
 
       } else if (zone.id === 'house') {
-        // Cottage House with chimney smoke
         const house = new THREE.Mesh(new THREE.BoxGeometry(5, 3.8, 4.5), new THREE.MeshStandardMaterial({ color: 0xfb7185 }));
         house.position.set(cx, 1.9, cz - 5);
         parent.add(house);
@@ -1561,14 +1914,12 @@
         parent.add(roof);
 
       } else if (zone.id === 'colors_numbers') {
-        // Glowing Rainbow Arch
         const rainbowGeo = new THREE.TorusGeometry(5, 0.6, 8, 20, Math.PI);
         const rainbowMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.2 });
         const rainbow = new THREE.Mesh(rainbowGeo, rainbowMat);
         rainbow.position.set(cx, 0, cz - 6);
         parent.add(rainbow);
 
-        // Floating numbered dice
         const dice = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
         dice.position.set(cx + 5, 2.5, cz - 2);
         dice.rotation.set(0.5, 0.5, 0);
@@ -1580,7 +1931,6 @@
       const npc = new THREE.Group();
       npc.position.set(cx, 0, cz);
 
-      // Blocky NPC
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.5), new THREE.MeshStandardMaterial({ color: zone.color }));
       body.position.y = 1.0;
       npc.add(body);
@@ -1588,7 +1938,6 @@
       head.position.y = 1.7;
       npc.add(head);
 
-      // Overhead animated marker
       const marker = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
       marker.rotation.x = Math.PI;
       marker.position.y = 2.5;
@@ -1627,7 +1976,6 @@
         );
         letterGroup.add(cube);
 
-        // Letter Sprite Texture
         const canvas = document.createElement('canvas');
         canvas.width = 128; canvas.height = 128;
         const ctx = canvas.getContext('2d');
@@ -1674,7 +2022,6 @@
       topBar.position.y = 3.2;
       gate.add(topBar);
 
-      // Glowing Portal Field
       const portalMat = new THREE.MeshBasicMaterial({
         color: isCorrect ? 0x34d399 : 0xf87171,
         transparent: true,
@@ -1697,7 +2044,7 @@
     }
 
     /* ==========================================================================
-       6. 3D GAME RENDER & TICK LOOP
+       8. 3D RENDER LOOP, JUMP & VOID FALL PHYSICS
        ========================================================================== */
     function updateGame() {
       const delta = Math.min(clock.getDelta(), 0.1);
@@ -1740,25 +2087,42 @@
         walkCycle = THREE.MathUtils.damp(walkCycle, 0, 10, delta);
       }
 
-      // Jump & Gravity (Synchronized Jump Animation)
+      // ACCURATE GROUND HEIGHT & VOID DETECTION
+      const groundH = getGroundHeightAt(playerPos.x, playerPos.z);
+
+      // Jump requested
       const jumpRequested = keys[' '] || virtualJump;
-      if (jumpRequested && isGrounded) {
-        playerVelocity.y = 8.5;
+      if (jumpRequested && isGrounded && groundH === 0) {
+        playerVelocity.y = 8.8;
         isGrounded = false;
         playerSquash.set(0.86, 1.25, 0.86);
         SoundFx.jump();
       }
 
-      playerVelocity.y -= 22 * delta;
+      // Gravity acceleration
+      playerVelocity.y -= 26 * delta;
       playerPos.y += playerVelocity.y * delta;
 
-      if (playerPos.y <= 0) {
-        if (!wasGroundedLastFrame) {
-          playerSquash.set(1.22, 0.78, 1.22); // Impact squash
+      if (groundH === 0) {
+        // Player is over solid island or bridge
+        if (playerPos.y <= 0) {
+          if (!wasGroundedLastFrame) {
+            playerSquash.set(1.22, 0.78, 1.22); // Impact squash
+          }
+          playerPos.y = 0;
+          playerVelocity.y = 0;
+          isGrounded = true;
+          State.isFallingInVoid = false;
         }
-        playerPos.y = 0;
-        playerVelocity.y = 0;
-        isGrounded = true;
+      } else {
+        // PLAYER IS IN THE VOID / OFF THE ISLAND!
+        isGrounded = false;
+        State.isFallingInVoid = true;
+
+        // If player has plummeted down deep into the abyss:
+        if (playerPos.y < -24) {
+          respawnPlayer();
+        }
       }
 
       // Restore squash & stretch scale to 1.0
@@ -1770,17 +2134,32 @@
       playerMesh.rotation.y = playerRotation;
       playerMesh.scale.copy(playerSquash);
 
+      // Animate glowing aura and sparkles (PCD Polska Roblox aesthetic)
+      const aura = playerMesh.getObjectByName('player_aura');
+      if (aura) {
+        aura.scale.setScalar(1.0 + Math.sin(elapsed * 4) * 0.04);
+      }
+      const sparkles = playerMesh.getObjectByName('player_sparkles');
+      if (sparkles) {
+        sparkles.rotation.y = elapsed * 1.5;
+      }
+
       // Contact shadow scaling with altitude
       const shadow = playerMesh.getObjectByName('player_shadow');
       if (shadow) {
-        shadow.position.y = -playerPos.y + 0.02;
-        const h = Math.max(0, playerPos.y);
-        const sScale = Math.max(0.35, 1.0 - h * 0.25);
-        shadow.scale.set(sScale, sScale, sScale);
-        shadow.material.opacity = 0.35 * Math.max(0.12, 1.0 - h * 0.3);
+        if (groundH === 0 && playerPos.y >= 0) {
+          shadow.position.y = -playerPos.y + 0.02;
+          const h = playerPos.y;
+          const sScale = Math.max(0.35, 1.0 - h * 0.25);
+          shadow.scale.set(sScale, sScale, sScale);
+          shadow.material.opacity = 0.35 * Math.max(0.12, 1.0 - h * 0.3);
+        } else {
+          // Off island -> no shadow on void
+          shadow.material.opacity = 0;
+        }
       }
 
-      // Synchronized limb animations
+      // Synchronized limb animations (including flailing in abyss)
       const leftArm = playerMesh.getObjectByName('arm_left');
       const rightArm = playerMesh.getObjectByName('arm_right');
       const leftLeg = playerMesh.getObjectByName('leg_left');
@@ -1788,7 +2167,13 @@
       const torso = playerMesh.getObjectByName('player_torso');
 
       if (leftArm && rightArm && leftLeg && rightLeg && torso) {
-        if (isGrounded) {
+        if (State.isFallingInVoid && playerPos.y < -1.0) {
+          // Panicked flailing arms while falling into abyss!
+          leftArm.rotation.x = Math.sin(elapsed * 20) * 1.4;
+          rightArm.rotation.x = -Math.sin(elapsed * 20) * 1.4;
+          leftLeg.rotation.x = Math.sin(elapsed * 16) * 0.7;
+          rightLeg.rotation.x = -Math.sin(elapsed * 16) * 0.7;
+        } else if (isGrounded) {
           const swing = hasMoveInput ? Math.sin(walkCycle) * 0.65 : 0;
           leftArm.rotation.x = THREE.MathUtils.damp(leftArm.rotation.x, -swing, 18, delta);
           rightArm.rotation.x = THREE.MathUtils.damp(rightArm.rotation.x, swing, 18, delta);
@@ -1815,13 +2200,13 @@
 
       // Camera Follow
       const targetCamX = playerPos.x - Math.sin(cameraYaw) * Math.cos(cameraPitch) * cameraDistance;
-      const targetCamY = playerPos.y + 1.6 + Math.sin(cameraPitch) * cameraDistance;
+      const targetCamY = Math.max(playerPos.y, -5) + 1.6 + Math.sin(cameraPitch) * cameraDistance;
       const targetCamZ = playerPos.z - Math.cos(cameraYaw) * Math.cos(cameraPitch) * cameraDistance;
 
       camera.position.x = THREE.MathUtils.damp(camera.position.x, targetCamX, 10, delta);
       camera.position.y = THREE.MathUtils.damp(camera.position.y, targetCamY, 10, delta);
       camera.position.z = THREE.MathUtils.damp(camera.position.z, targetCamZ, 10, delta);
-      camera.lookAt(playerPos.x, playerPos.y + 1.4, playerPos.z);
+      camera.lookAt(playerPos.x, Math.max(playerPos.y, -8) + 1.4, playerPos.z);
 
       // Rotate letters, markers & clouds
       interactables.forEach(item => {
@@ -1872,19 +2257,17 @@
     }
 
     /* ==========================================================================
-       7. INTERACTION RESOLVERS & TELEPORTATION
+       9. INTERACTION RESOLVERS & TELEPORTATION
        ========================================================================== */
     window.triggerProximityInteract = function() {
       const item = State.currentNearInteractable;
       if (!item) return;
 
       if (item.type === 'portal') {
-        // Portal returns player to World Map selector
         SoundFx.chime();
         window.showScreen('map');
 
       } else if (item.type === 'letter') {
-        // Mini-game 1: Word Collector
         SoundFx.coin();
         confetti({ particleCount: 35, origin: { y: 0.7 } });
         worldPropsGroup.remove(item.mesh);
@@ -1901,7 +2284,6 @@
         checkBadges('letter');
 
       } else if (item.type === 'gate') {
-        // Mini-game 2: Sorting Gate
         if (item.isCorrect) {
           SoundFx.chime();
           confetti({ particleCount: 65, origin: { y: 0.6 } });
@@ -1917,7 +2299,6 @@
         }
 
       } else if (item.type === 'npc') {
-        // Mini-game 3: NPC Riddle
         openNPCDialogue(item.zone);
       }
     };
@@ -1993,12 +2374,11 @@
       }
     }
 
-    /* Teleport player to chosen island */
     window.teleportToIsland = function(islandIndex) {
       SoundFx.chime();
       State.activeIslandIdx = islandIndex;
       const target = ISLAND_COORDS[islandIndex];
-      playerPos.set(target.x, 0, target.z);
+      playerPos.set(target.x, 0.5, target.z);
       playerVelocity.set(0, 0, 0);
 
       document.getElementById('world-map-screen').style.display = 'none';
@@ -2009,7 +2389,7 @@
     };
 
     /* ==========================================================================
-       8. BADGES & TOAST NOTIFICATIONS
+       10. BADGES & TOAST NOTIFICATIONS
        ========================================================================== */
     function checkBadges(trigger) {
       if (trigger === 'riddle' && !State.badges.has('first_quest')) {
@@ -2050,10 +2430,9 @@
     }
 
     /* ==========================================================================
-       9. SHIFTING ISLANDS GENERATOR & INTERACTIVE MAP CARDS
+       11. SHIFTING ISLANDS GENERATOR & INTERACTIVE MAP CARDS
        ========================================================================== */
     window.generateNewRandomGame = function() {
-      // Pick 3 random zones out of 5
       const shuffled = [...ALL_ZONES].sort(() => 0.5 - Math.random());
       State.selectedZones = shuffled.slice(0, 3);
       State.collectedLettersByZone = {};
@@ -2062,7 +2441,6 @@
       State.score = 0;
       State.activeIslandIdx = 0;
 
-      // Populate Interactive Board on World Map Screen
       const board = document.getElementById('islands-board-container');
       board.innerHTML = '';
 
@@ -2074,7 +2452,7 @@
         <div style="font-size: 42px; margin-bottom: 6px;">🏛️</div>
         <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Central Hub</div>
         <div style="font-size: 13px; color: #64748b; margin: 6px 0; line-height: 1.4;">
-          Magiczna wyspa startowa. Stąd prowadzą mosty i portale na pozostałe 3 wyspy.
+          Magiczna wyspa z wiatą przystankową, Maluchem 126p i drogami. Stąd prowadzą mosty!
         </div>
         <button class="btn btn-primary" style="margin-top: 10px; width: 100%;" onclick="event.stopPropagation(); window.teleportToIsland(0);">
           🚀 Ląduj na Hubie
@@ -2106,7 +2484,6 @@
         board.appendChild(card);
       });
 
-      // Reset Player position & Rebuild 3D world
       playerPos.set(0, 0, 0);
       buildWorld();
       updateHUD();
@@ -2128,7 +2505,6 @@
       document.getElementById('hud-coins').innerText = State.coins;
       document.getElementById('shop-coins-counter').innerText = State.coins;
 
-      // Determine which island the player is currently on or closest to
       let nearestIslandIdx = 0;
       let minDist = 999;
       ISLAND_COORDS.forEach((coord, idx) => {
@@ -2173,7 +2549,7 @@
     }
 
     /* ==========================================================================
-       10. MODALS & AVATAR SHOP
+       12. MODALS & AVATAR SHOP
        ========================================================================== */
     window.openModal = function(id) {
       SoundFx.coin();
@@ -2209,7 +2585,10 @@
         `;
         card.onclick = () => {
           if (isOwned) {
-            if (item.type === 'shirt') State.avatar.shirtColor = item.color;
+            if (item.type === 'shirt') {
+              State.avatar.shirtColor = item.color;
+              if (item.number) State.avatar.number = item.number;
+            }
             if (item.type === 'hat') State.avatar.hat = item.val;
             if (item.type === 'wings') State.avatar.wings = item.val;
             rebuildPlayerAvatar();
@@ -2219,7 +2598,10 @@
             if (State.coins >= item.price) {
               State.coins -= item.price;
               ownedItems.add(item.id);
-              if (item.type === 'shirt') State.avatar.shirtColor = item.color;
+              if (item.type === 'shirt') {
+                State.avatar.shirtColor = item.color;
+                if (item.number) State.avatar.number = item.number;
+              }
               if (item.type === 'hat') State.avatar.hat = item.val;
               if (item.type === 'wings') State.avatar.wings = item.val;
               rebuildPlayerAvatar();
@@ -2266,17 +2648,15 @@
     };
 
     /* ==========================================================================
-       11. INITIALIZATION ON DOM READY
+       13. INITIALIZATION ON DOM READY
        ========================================================================== */
     window.addEventListener('DOMContentLoaded', () => {
       initThree();
       playerMesh = createPlayerMesh();
       scene.add(playerMesh);
 
-      // Start initial game state with 3 randomly selected islands
       generateNewRandomGame();
 
-      // Begin 3D render loop
       requestAnimationFrame(updateGame);
     });
   </script>
